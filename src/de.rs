@@ -17,7 +17,7 @@ use num_traits::ToPrimitive;
 use serde::de::Visitor;
 use serde::{de, forward_to_deserialize_any};
 use std::char;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::io;
 use std::io::{BufRead, BufReader, Read};
 use std::iter::FusedIterator;
@@ -122,20 +122,23 @@ pub struct Deserializer<R: Read> {
     rdr: BufReader<R>,
     options: DeOptions,
     pos: usize,
-    value: Option<Value>,                 // next value to deserialize
-    memo: HashMap<MemoId, (Value, i32)>, // pickle memo (value, number of refs)
-    stack: Vec<Value>,                    // topmost items on the stack
-    stacks: Vec<Vec<Value>>,              // items further down the stack, between MARKs
+    value: Option<Value>,            // next value to deserialize
+    memo: Vec<Option<(Value, i32)>>, // pickle memo (value, number of refs)
+    memo_len: usize,                 // number of items actually in memo
+    stack: Vec<Value>,               // topmost items on the stack
+    stacks: Vec<Vec<Value>>,         // items further down the stack, between MARKs
 }
 
 impl<R: Read> Deserializer<R> {
     /// Construct a new Deserializer.
     pub fn new(rdr: R, options: DeOptions) -> Deserializer<R> {
         Deserializer {
-            rdr: BufReader::new(rdr),
+            // rdr: BufReader::new(rdr),
+            rdr: BufReader::with_capacity(8192 * 16, rdr),
             pos: 0,
             value: None,
-            memo: HashMap::new(),
+            memo: Vec::with_capacity(32), // Initial capacity similar to C's MEMO_SIZE
+            memo_len: 0,
             stack: Vec::with_capacity(128),
             stacks: Vec::with_capacity(16),
             options,
@@ -263,7 +266,7 @@ impl<R: Read> Deserializer<R> {
                     self.memoize(memo_id)?;
                 }
                 MEMOIZE => {
-                    let memo_id = self.memo.len();
+                    let memo_id = self.memo_len;
                     self.memoize(memo_id as MemoId)?;
                 }
 
@@ -575,11 +578,17 @@ impl<R: Read> Deserializer<R> {
             // Since some operations like APPEND do things to the stack top, we
             // need to provide the reference to the "real" object here, not the
             // MemoRef variant.
-            Some(&mut Value::MemoRef(n)) => self
-                .memo
-                .get_mut(&n)
-                .map(|&mut (ref mut v, _)| v)
-                .ok_or(Error::Syntax(ErrorCode::MissingMemo(n))),
+            Some(&mut Value::MemoRef(n)) => {
+                let idx = n as usize;
+                if idx < self.memo.len() {
+                    self.memo[idx]
+                        .as_mut()
+                        .map(|(ref mut v, _)| v)
+                        .ok_or(Error::Syntax(ErrorCode::MissingMemo(n)))
+                } else {
+                    Err(Error::Syntax(ErrorCode::MissingMemo(n)))
+                }
+            }
             Some(other_value) => Ok(other_value),
             None => Err(Error::Eval(ErrorCode::StackUnderflow, self.pos)),
         }
@@ -588,8 +597,12 @@ impl<R: Read> Deserializer<R> {
     // Pushes a memo reference on the stack, and increases the usage counter.
     fn push_memo_ref(&mut self, memo_id: MemoId) -> Result<()> {
         self.stack.push(Value::MemoRef(memo_id));
-        match self.memo.get_mut(&memo_id) {
-            Some(&mut (_, ref mut count)) => {
+        let idx = memo_id as usize;
+        if idx >= self.memo.len() {
+            return Err(Error::Eval(ErrorCode::MissingMemo(memo_id), self.pos));
+        }
+        match &mut self.memo[idx] {
+            Some((_, ref mut count)) => {
                 *count += 1;
                 Ok(())
             }
@@ -600,15 +613,40 @@ impl<R: Read> Deserializer<R> {
     // Memoize the current stack top with the given ID.  Moves the actual
     // object into the memo, and saves a reference on the stack instead.
     fn memoize(&mut self, memo_id: MemoId) -> Result<()> {
+        // println!("memo_id: {}", memo_id);
+
         let mut item = self.pop()?;
+        // println!("orig item: {:?}", item);
+
         if let Value::MemoRef(id) = item {
+            // println!("id: {}", id);
             // TODO: is this even possible?
-            item = match self.memo.get(&id) {
+            let idx = id as usize;
+            item = match self.memo.get(idx).and_then(|opt| opt.as_ref()) {
                 Some((v, _)) => v.clone(),
                 None => return Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos)),
             };
+
+            // println!("updated item: {:?}", item);
         }
-        self.memo.insert(memo_id, (item, 1));
+
+        let idx = memo_id as usize;
+        // Grow the vector if necessary (similar to C's ResizeMemoList)
+        // println!("old size: {}", self.memo.len());
+        if idx >= self.memo.len() {
+            // Resize to at least idx + 1, with some extra capacity
+            // let new_size = (idx + 1).max(self.memo.len() * 2);
+            let new_size = 1.max(idx * 2);
+            // println!("new size: {}", new_size);
+            self.memo.resize(new_size, None);
+        }
+
+        // There can be gaps, so we need to always check for None
+        if self.memo[idx].is_none() {
+            self.memo_len += 1;
+        }
+
+        self.memo[idx] = Some((item, 1));
         self.stack.push(Value::MemoRef(memo_id));
         Ok(())
     }
@@ -616,16 +654,22 @@ impl<R: Read> Deserializer<R> {
     // Resolve memo reference during stream decoding.
     fn resolve(&mut self, memo: Value) -> Result<Value> {
         match memo {
-            Value::MemoRef(id) => match self.memo.get_mut(&id) {
-                None => Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos)),
-                Some(&mut (ref val, ref mut count)) => {
-                    // We can't remove it from the memo here, since we haven't
-                    // decoded the whole stream yet and there may be further
-                    // references to the value.
-                    *count -= 1;
-                    Ok(val.clone())
+            Value::MemoRef(id) => {
+                let idx = id as usize;
+                if idx >= self.memo.len() {
+                    return Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos));
                 }
-            },
+                match &mut self.memo[idx] {
+                    None => Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos)),
+                    Some((ref val, ref mut count)) => {
+                        // We can't remove it from the memo here, since we haven't
+                        // decoded the whole stream yet and there may be further
+                        // references to the value.
+                        *count -= 1;
+                        Ok(val.clone())
+                    }
+                }
+            }
             other => Ok(other),
         }
     }
@@ -638,7 +682,18 @@ impl<R: Read> Deserializer<R> {
         // Take the value from the memo while visiting it.  This prevents us
         // from trying to depickle recursive structures, which we can't do
         // because our Values aren't references.
-        let (value, mut count) = match self.memo.remove(&id) {
+        let idx = id as usize;
+        if idx >= self.memo.len() {
+            return {
+                if self.options.replace_recursive_structures {
+                    f(self, u, Value::None)
+                } else {
+                    Err(Error::Syntax(ErrorCode::Recursive))
+                }
+            };
+        }
+
+        let (value, mut count) = match self.memo[idx].take() {
             Some(entry) => entry,
             None => {
                 return {
@@ -650,13 +705,14 @@ impl<R: Read> Deserializer<R> {
                 }
             }
         };
+
         count -= 1;
         if count <= 0 {
             f(self, u, value)
             // No need to put it back.
         } else {
             let result = f(self, u, value.clone());
-            self.memo.insert(id, (value, count));
+            self.memo[idx] = Some((value, count));
             result
         }
     }
