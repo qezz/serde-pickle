@@ -1,8 +1,8 @@
 use byteorder::{LittleEndian, WriteBytesExt};
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use serde_pickle;
+use criterion::{criterion_group, criterion_main, Criterion};
 use serde_pickle::*;
 use std::collections::BTreeMap;
+use std::hint::black_box;
 use std::io::Read;
 
 // TODO: These macros are redefined from tests
