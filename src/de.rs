@@ -17,7 +17,7 @@ use num_traits::ToPrimitive;
 use serde::de::Visitor;
 use serde::{de, forward_to_deserialize_any};
 use std::char;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io;
 use std::io::{BufRead, BufReader, Read};
 use std::iter::FusedIterator;
@@ -123,7 +123,7 @@ pub struct Deserializer<R: Read> {
     options: DeOptions,
     pos: usize,
     value: Option<Value>,                 // next value to deserialize
-    memo: BTreeMap<MemoId, (Value, i32)>, // pickle memo (value, number of refs)
+    memo: HashMap<MemoId, (Value, i32)>, // pickle memo (value, number of refs)
     stack: Vec<Value>,                    // topmost items on the stack
     stacks: Vec<Vec<Value>>,              // items further down the stack, between MARKs
 }
@@ -135,7 +135,7 @@ impl<R: Read> Deserializer<R> {
             rdr: BufReader::new(rdr),
             pos: 0,
             value: None,
-            memo: BTreeMap::new(),
+            memo: HashMap::new(),
             stack: Vec::with_capacity(128),
             stacks: Vec::with_capacity(16),
             options,
