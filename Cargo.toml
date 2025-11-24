@@ -30,6 +30,9 @@ quickcheck = "0.9.0"
 # for 1.63
 regex = "=1.9.6"
 
+[lib]
+bench = false
+
 [[bench]]
 name = "benchmark"
 harness = false
