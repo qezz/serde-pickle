@@ -26,7 +26,7 @@
         rusttoolchain =
           (pkgs.rustChannelOf {
             rustToolchain = ./rust-toolchain.toml;
-            sha256 = "sha256-KXx+ID0y4mg2B3LHp7IyaiMrdexF6octADnAtFIOjrY=";
+            sha256 = "sha256-SDu4snEWjuZU475PERvu+iO50Mi39KVjqCeJeNvpguU=";
           }).rust;
       in
       {
