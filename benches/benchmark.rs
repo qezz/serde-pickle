@@ -179,9 +179,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     bench_picklefile(c, "benches/data/manyrefs.pickle");
     bench_picklefile(c, "benches/data/manystrings.pickle");
 
-    for i in 0..=5 {
-        bench_picklefile(c, &format!("test/data/tests_py3_proto{}.pickle", i));
-    }
+    // TODO: Previous benches for py3 pickle were broken.
+    // Need to figure out why, and how to fix them.
+
     for i in 0..=2 {
         bench_picklefile(c, &format!("test/data/tests_py2_proto{}.pickle", i));
     }
