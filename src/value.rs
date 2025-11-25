@@ -9,7 +9,7 @@
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 
 pub use crate::value_impls::{from_value, to_value};
@@ -24,7 +24,7 @@ use crate::error::{Error, ErrorCode};
 /// all integers are long integers, so all are pickled as such.  While decoding,
 /// we simply put all integers that fit into an i64, and use `BigInt` for the
 /// rest.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Value {
     /// None
     None,
@@ -49,17 +49,12 @@ pub enum Value {
     /// Frozen (immutable) set
     FrozenSet(BTreeSet<HashableValue>),
     /// Dictionary (map)
-    Dict(BTreeMap<HashableValue, Value>),
+    Dict(HashMap<HashableValue, Value>),
 }
 
 /// Represents all primitive builtin Python values that can be contained
 /// in a "hashable" context (i.e., as dictionary keys and set elements).
-///
-/// In Rust, the type is *not* hashable, since we use B-tree maps and sets
-/// instead of the hash variants.  To be able to put all Value instances
-/// into these B-trees, we implement a consistent ordering between all
-/// the possible types (see below).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub enum HashableValue {
     /// None
     None,
@@ -70,7 +65,7 @@ pub enum HashableValue {
     /// Long integer
     Int(BigInt),
     /// Float
-    F64(f64),
+    // F64((u64, u64)),
     /// Bytestring
     Bytes(Vec<u8>),
     /// Unicode string
@@ -89,6 +84,14 @@ fn hashable_to_values(values: Vec<HashableValue>) -> Vec<Value> {
     values.into_iter().map(HashableValue::into_value).collect()
 }
 
+fn split_parts(x: f64) -> (u64, u64) {
+    let int_part = x.trunc() as u64;
+    let frac = x.fract();
+    // Encode fractional part with some fixed precision
+    let frac_part = (frac * 1e18) as u64; // 18 decimal digits
+    (int_part, frac_part)
+}
+
 impl Value {
     /// Convert the value into a hashable version, if possible.  If not, return
     /// a ValueNotHashable error.
@@ -98,7 +101,9 @@ impl Value {
             Value::Bool(b) => Ok(HashableValue::Bool(b)),
             Value::I64(i) => Ok(HashableValue::I64(i)),
             Value::Int(i) => Ok(HashableValue::Int(i)),
-            Value::F64(f) => Ok(HashableValue::F64(f)),
+            // Value::F64(f) => Ok(HashcableValue::F64(f)),
+            // Value::F64(f) => Err(Error::Syntax(Er)
+            // Value::F64(f) => Ok(HashableValue::F64(split_parts(f))),
             Value::Bytes(b) => Ok(HashableValue::Bytes(b)),
             Value::String(s) => Ok(HashableValue::String(s)),
             Value::FrozenSet(v) => Ok(HashableValue::FrozenSet(v)),
@@ -116,7 +121,7 @@ impl HashableValue {
             HashableValue::Bool(b) => Value::Bool(b),
             HashableValue::I64(i) => Value::I64(i),
             HashableValue::Int(i) => Value::Int(i),
-            HashableValue::F64(f) => Value::F64(f),
+            // HashableValue::F64((i, f)) => Value::F64(i),
             HashableValue::Bytes(b) => Value::Bytes(b),
             HashableValue::String(s) => Value::String(s),
             HashableValue::FrozenSet(v) => Value::FrozenSet(v),

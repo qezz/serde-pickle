@@ -1201,15 +1201,16 @@ impl<R: Read> Deserializer<R> {
                     .collect::<Result<_>>();
                 Ok(value::Value::FrozenSet(new?))
             }
+
             Value::Dict(v) => {
-                let mut map = BTreeMap::new();
-                for (key, value) in v {
-                    let real_key = self.convert_value(key).and_then(|rv| rv.into_hashable())?;
-                    let real_value = self.convert_value(value)?;
-                    map.insert(real_key, real_value);
-                }
-                Ok(value::Value::Dict(map))
+                let iter = v.into_iter().map(|(k, v)| {
+                    let real_key = self.convert_value(k).and_then(|rv| rv.into_hashable())?;
+                    let real_value = self.convert_value(v)?;
+                    Ok((real_key, real_value))
+                });
+                Ok(value::Value::Dict(iter.collect::<Result<_>>()?))
             }
+
             Value::MemoRef(memo_id) => {
                 self.resolve_recursive(memo_id, (), |slf, (), value| slf.convert_value(value))
             }
