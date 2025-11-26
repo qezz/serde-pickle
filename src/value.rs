@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 
+use crate::hashable_float::Float64;
 pub use crate::value_impls::{from_value, to_value};
 
 use crate::error::{Error, ErrorCode};
@@ -65,7 +66,7 @@ pub enum HashableValue {
     /// Long integer
     Int(BigInt),
     /// Float
-    // F64((u64, u64)),
+    F64(Float64),
     /// Bytestring
     Bytes(Vec<u8>),
     /// Unicode string
@@ -104,6 +105,7 @@ impl Value {
             // Value::F64(f) => Ok(HashcableValue::F64(f)),
             // Value::F64(f) => Err(Error::Syntax(Er)
             // Value::F64(f) => Ok(HashableValue::F64(split_parts(f))),
+            Value::F64(f) => Ok(HashableValue::F64(Float64::new(f))),
             Value::Bytes(b) => Ok(HashableValue::Bytes(b)),
             Value::String(s) => Ok(HashableValue::String(s)),
             Value::FrozenSet(v) => Ok(HashableValue::FrozenSet(v)),
@@ -122,6 +124,7 @@ impl HashableValue {
             HashableValue::I64(i) => Value::I64(i),
             HashableValue::Int(i) => Value::Int(i),
             // HashableValue::F64((i, f)) => Value::F64(i),
+            HashableValue::F64(f) => Value::F64(f.to_f64()),
             HashableValue::Bytes(b) => Value::Bytes(b),
             HashableValue::String(s) => Value::String(s),
             HashableValue::FrozenSet(v) => Value::FrozenSet(v),
@@ -190,7 +193,7 @@ impl fmt::Display for HashableValue {
             HashableValue::Bool(b) => write!(f, "{}", if b { "True" } else { "False" }),
             HashableValue::I64(i) => write!(f, "{}", i),
             HashableValue::Int(ref i) => write!(f, "{}", i),
-            HashableValue::F64(v) => write!(f, "{}", v),
+            HashableValue::F64(v) => write!(f, "{}", v.to_f64()),
             HashableValue::Bytes(ref b) => write!(f, "b{:?}", b), //
             HashableValue::String(ref s) => write!(f, "{:?}", s),
             HashableValue::Tuple(ref v) => write_elements(f, v.iter(), "(", ")", v.len(), v.len() == 1),
@@ -237,7 +240,7 @@ impl Ord for HashableValue {
                 Bool(b2) => b.cmp(&b2),
                 I64(i2) => (b as i64).cmp(&i2),
                 Int(ref bi) => BigInt::from(b as i64).cmp(bi),
-                F64(f) => float_ord(b as i64 as f64, f),
+                F64(f) => float_ord(b as i64 as f64, f.to_f64()),
                 _ => Ordering::Less,
             },
             I64(i) => match *other {
@@ -245,7 +248,7 @@ impl Ord for HashableValue {
                 Bool(b) => i.cmp(&(b as i64)),
                 I64(i2) => i.cmp(&i2),
                 Int(ref bi) => BigInt::from(i).cmp(bi),
-                F64(f) => float_ord(i as f64, f),
+                F64(f) => float_ord(i as f64, f.to_f64()),
                 _ => Ordering::Less,
             },
             Int(ref bi) => match *other {
@@ -253,15 +256,15 @@ impl Ord for HashableValue {
                 Bool(b) => bi.cmp(&BigInt::from(b as i64)),
                 I64(i) => bi.cmp(&BigInt::from(i)),
                 Int(ref bi2) => bi.cmp(bi2),
-                F64(f) => float_bigint_ord(bi, f),
+                F64(f) => float_bigint_ord(bi, f.to_f64()),
                 _ => Ordering::Less,
             },
             F64(f) => match *other {
                 None => Ordering::Greater,
-                Bool(b) => float_ord(f, b as i64 as f64),
-                I64(i) => float_ord(f, i as f64),
-                Int(ref bi) => BigInt::from(f as i64).cmp(bi),
-                F64(f2) => float_ord(f, f2),
+                Bool(b) => float_ord(f.to_f64(), b as i64 as f64),
+                I64(i) => float_ord(f.to_f64(), i as f64),
+                Int(ref bi) => BigInt::from(f.to_f64() as i64).cmp(bi),
+                F64(f2) => float_ord(f.to_f64(), f2.to_f64()),
                 _ => Ordering::Less,
             },
             Bytes(ref bs) => match *other {
@@ -288,6 +291,7 @@ impl Ord for HashableValue {
 }
 
 /// A "reasonable" total ordering for floats.
+// TODO: try inline always
 fn float_ord(f: f64, g: f64) -> Ordering {
     match f.partial_cmp(&g) {
         Some(o) => o,
@@ -296,6 +300,7 @@ fn float_ord(f: f64, g: f64) -> Ordering {
 }
 
 /// Ordering between floats and big integers.
+// TODO: try inline always
 fn float_bigint_ord(bi: &BigInt, g: f64) -> Ordering {
     match bi.to_f64() {
         Some(f) => float_ord(f, g),

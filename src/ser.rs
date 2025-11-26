@@ -106,7 +106,7 @@ impl<W: io::Write> Serializer<W> {
             HashableValue::None => self.serialize_unit(),
             HashableValue::Bool(b) => self.serialize_bool(b),
             HashableValue::I64(i) => self.serialize_i64(i),
-            HashableValue::F64(f) => self.serialize_f64(f),
+            HashableValue::F64(f) => self.serialize_f64(f.to_f64()),
             HashableValue::Bytes(ref b) => self.serialize_bytes(b),
             HashableValue::String(ref s) => self.serialize_str(s),
             HashableValue::Int(ref i) => self.serialize_bigint(i),

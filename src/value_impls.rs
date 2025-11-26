@@ -11,12 +11,13 @@ use num_traits::ToPrimitive;
 use serde::de::Visitor;
 use serde::ser::Serialize;
 use serde::{de, forward_to_deserialize_any, ser};
-use std::collections::{btree_map, HashMap};
+use std::collections::{btree_map, hash_map, HashMap};
 use std::fmt;
 use std::result::Result as StdResult;
 use std::vec;
 
 use crate::error::{Error, ErrorCode, Result};
+use crate::hashable_float::Float64;
 use crate::value::{HashableValue, Value};
 
 impl<'de> de::Deserialize<'de> for Value {
@@ -148,7 +149,7 @@ impl<'de> de::Deserialize<'de> for HashableValue {
 
             #[inline]
             fn visit_f64<E>(self, value: f64) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::F64(value))
+                Ok(HashableValue::F64(Float64::new(value)))
             }
 
             #[inline]
@@ -378,7 +379,8 @@ impl<'de: 'a, 'a> de::SeqAccess<'de> for SeqDeserializer<'a> {
 
 struct MapDeserializer<'a> {
     de: &'a mut Deserializer,
-    iter: btree_map::IntoIter<HashableValue, Value>,
+    // iter: btree_map::IntoIter<HashableValue, Value>,
+    iter: hash_map::IntoIter<HashableValue, Value>,
     value: Option<Value>,
     len: usize,
 }
