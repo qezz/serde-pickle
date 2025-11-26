@@ -8,7 +8,7 @@ repository = "https://github.com/birkenfeld/serde-pickle"
 documentation = "http://docs.rs/serde-pickle"
 keywords = ["pickle", "python", "serde", "serialization"]
 edition = "2018"
-rust-version = "1.63"
+rust-version = "1.91.1"
 
 [dependencies]
 serde = "1.0.209"
@@ -30,9 +30,16 @@ regex = "=1.9.6"
 [lib]
 bench = false
 
+[[bin]]
+name = "xxx"
+bench = false
+
 [[bench]]
 name = "benchmark"
 harness = false
 
 [profile.release]
+debug = 1
+
+[profile.bench]
 debug = 1
