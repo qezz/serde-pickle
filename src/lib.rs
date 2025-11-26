@@ -83,6 +83,7 @@ pub use self::error::{Error, ErrorCode, Result};
 mod consts;
 pub mod de;
 pub mod error;
+pub mod hashable_float;
 pub mod ser;
 pub mod value;
 mod value_impls;
