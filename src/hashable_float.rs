@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Float64 {
@@ -24,7 +27,37 @@ impl Hash for Float64 {
 
 impl Eq for Float64 {}
 
+impl Ord for Float64 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Float64::Nan, Float64::Nan) => Ordering::Equal,
+            (Float64::PlusInf, Float64::PlusInf) => Ordering::Equal,
+            (Float64::MinusInf, Float64::MinusInf) => Ordering::Equal,
+            (Float64::Value(a), Float64::Value(b)) => a.partial_cmp(b).unwrap(),
+
+            // NaN greater than everything
+            (Float64::Nan, _) => Ordering::Greater,
+            (_, Float64::Nan) => Ordering::Less,
+
+            // MinusInf less than everything (except NaN, handled above)
+            (Float64::MinusInf, _) => Ordering::Less,
+            (_, Float64::MinusInf) => Ordering::Greater,
+
+            // PlusInf greater than Value (MinusInf/NaN already handled)
+            (Float64::PlusInf, _) => Ordering::Greater,
+            (_, Float64::PlusInf) => Ordering::Less,
+        }
+    }
+}
+
+impl PartialOrd for Float64 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl Float64 {
+    #[inline(always)]
     pub fn new(val: f64) -> Self {
         match val {
             v if v.is_nan() => Float64::Nan,
@@ -34,6 +67,7 @@ impl Float64 {
         }
     }
 
+    #[inline(always)]
     pub fn to_f64(&self) -> f64 {
         match self {
             Float64::PlusInf => f64::INFINITY,

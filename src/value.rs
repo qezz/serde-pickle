@@ -25,7 +25,7 @@ use crate::error::{Error, ErrorCode};
 /// all integers are long integers, so all are pickled as such.  While decoding,
 /// we simply put all integers that fit into an i64, and use `BigInt` for the
 /// rest.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     /// None
     None,
@@ -55,7 +55,7 @@ pub enum Value {
 
 /// Represents all primitive builtin Python values that can be contained
 /// in a "hashable" context (i.e., as dictionary keys and set elements).
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Ord)]
 pub enum HashableValue {
     /// None
     None,
@@ -204,19 +204,19 @@ impl fmt::Display for HashableValue {
     }
 }
 
-impl PartialEq for HashableValue {
-    fn eq(&self, other: &HashableValue) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
+// impl PartialEq for HashableValue {
+//     fn eq(&self, other: &HashableValue) -> bool {
+//         self.cmp(other) == Ordering::Equal
+//     }
+// }
 
 impl Eq for HashableValue {}
 
-impl PartialOrd for HashableValue {
-    fn partial_cmp(&self, other: &HashableValue) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
+// impl PartialOrd for HashableValue {
+//     fn partial_cmp(&self, other: &HashableValue) -> Option<Ordering> {
+//         Some(self.cmp(other))
+//     }
+// }
 
 /// Implement a (more or less) consistent ordering for `HashableValue`s
 /// so that they can be added to dictionaries and sets.
@@ -227,68 +227,68 @@ impl PartialOrd for HashableValue {
 /// For other types, we define an ordering between all types A and B so that all
 /// objects of type A are always lesser than objects of type B.  This is done
 /// similar to Python 2's ordering of different types.
-impl Ord for HashableValue {
-    fn cmp(&self, other: &HashableValue) -> Ordering {
-        use self::HashableValue::*;
-        match *self {
-            None => match *other {
-                None => Ordering::Equal,
-                _ => Ordering::Less,
-            },
-            Bool(b) => match *other {
-                None => Ordering::Greater,
-                Bool(b2) => b.cmp(&b2),
-                I64(i2) => (b as i64).cmp(&i2),
-                Int(ref bi) => BigInt::from(b as i64).cmp(bi),
-                F64(f) => float_ord(b as i64 as f64, f.to_f64()),
-                _ => Ordering::Less,
-            },
-            I64(i) => match *other {
-                None => Ordering::Greater,
-                Bool(b) => i.cmp(&(b as i64)),
-                I64(i2) => i.cmp(&i2),
-                Int(ref bi) => BigInt::from(i).cmp(bi),
-                F64(f) => float_ord(i as f64, f.to_f64()),
-                _ => Ordering::Less,
-            },
-            Int(ref bi) => match *other {
-                None => Ordering::Greater,
-                Bool(b) => bi.cmp(&BigInt::from(b as i64)),
-                I64(i) => bi.cmp(&BigInt::from(i)),
-                Int(ref bi2) => bi.cmp(bi2),
-                F64(f) => float_bigint_ord(bi, f.to_f64()),
-                _ => Ordering::Less,
-            },
-            F64(f) => match *other {
-                None => Ordering::Greater,
-                Bool(b) => float_ord(f.to_f64(), b as i64 as f64),
-                I64(i) => float_ord(f.to_f64(), i as f64),
-                Int(ref bi) => BigInt::from(f.to_f64() as i64).cmp(bi),
-                F64(f2) => float_ord(f.to_f64(), f2.to_f64()),
-                _ => Ordering::Less,
-            },
-            Bytes(ref bs) => match *other {
-                String(_) | FrozenSet(_) | Tuple(_) => Ordering::Less,
-                Bytes(ref bs2) => bs.cmp(bs2),
-                _ => Ordering::Greater,
-            },
-            String(ref s) => match *other {
-                FrozenSet(_) | Tuple(_) => Ordering::Less,
-                String(ref s2) => s.cmp(s2),
-                _ => Ordering::Greater,
-            },
-            FrozenSet(ref s) => match *other {
-                Tuple(_) => Ordering::Less,
-                FrozenSet(ref s2) => s.cmp(s2),
-                _ => Ordering::Greater,
-            },
-            Tuple(ref t) => match *other {
-                Tuple(ref t2) => t.cmp(t2),
-                _ => Ordering::Greater,
-            },
-        }
-    }
-}
+// impl Ord for HashableValue {
+//     fn cmp(&self, other: &HashableValue) -> Ordering {
+//         use self::HashableValue::*;
+//         match *self {
+//             None => match *other {
+//                 None => Ordering::Equal,
+//                 _ => Ordering::Less,
+//             },
+//             Bool(b) => match *other {
+//                 None => Ordering::Greater,
+//                 Bool(b2) => b.cmp(&b2),
+//                 I64(i2) => (b as i64).cmp(&i2),
+//                 Int(ref bi) => BigInt::from(b as i64).cmp(bi),
+//                 F64(f) => float_ord(b as i64 as f64, f.to_f64()),
+//                 _ => Ordering::Less,
+//             },
+//             I64(i) => match *other {
+//                 None => Ordering::Greater,
+//                 Bool(b) => i.cmp(&(b as i64)),
+//                 I64(i2) => i.cmp(&i2),
+//                 Int(ref bi) => BigInt::from(i).cmp(bi),
+//                 F64(f) => float_ord(i as f64, f.to_f64()),
+//                 _ => Ordering::Less,
+//             },
+//             Int(ref bi) => match *other {
+//                 None => Ordering::Greater,
+//                 Bool(b) => bi.cmp(&BigInt::from(b as i64)),
+//                 I64(i) => bi.cmp(&BigInt::from(i)),
+//                 Int(ref bi2) => bi.cmp(bi2),
+//                 F64(f) => float_bigint_ord(bi, f.to_f64()),
+//                 _ => Ordering::Less,
+//             },
+//             F64(f) => match *other {
+//                 None => Ordering::Greater,
+//                 Bool(b) => float_ord(f.to_f64(), b as i64 as f64),
+//                 I64(i) => float_ord(f.to_f64(), i as f64),
+//                 Int(ref bi) => BigInt::from(f.to_f64() as i64).cmp(bi),
+//                 F64(f2) => float_ord(f.to_f64(), f2.to_f64()),
+//                 _ => Ordering::Less,
+//             },
+//             Bytes(ref bs) => match *other {
+//                 String(_) | FrozenSet(_) | Tuple(_) => Ordering::Less,
+//                 Bytes(ref bs2) => bs.cmp(bs2),
+//                 _ => Ordering::Greater,
+//             },
+//             String(ref s) => match *other {
+//                 FrozenSet(_) | Tuple(_) => Ordering::Less,
+//                 String(ref s2) => s.cmp(s2),
+//                 _ => Ordering::Greater,
+//             },
+//             FrozenSet(ref s) => match *other {
+//                 Tuple(_) => Ordering::Less,
+//                 FrozenSet(ref s2) => s.cmp(s2),
+//                 _ => Ordering::Greater,
+//             },
+//             Tuple(ref t) => match *other {
+//                 Tuple(ref t2) => t.cmp(t2),
+//                 _ => Ordering::Greater,
+//             },
+//         }
+//     }
+// }
 
 /// A "reasonable" total ordering for floats.
 // TODO: try inline always
