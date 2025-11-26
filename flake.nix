@@ -37,6 +37,8 @@
               rusttoolchain
               pkg-config
               python313
+              perf
+              perl
             ];
 
             RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
