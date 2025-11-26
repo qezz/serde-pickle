@@ -1,9 +1,12 @@
 use std::{
     cmp::Ordering,
+    fmt::Display,
     hash::{Hash, Hasher},
+    num::ParseFloatError,
+    str::FromStr,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Float64 {
     PlusInf,
     MinusInf,
@@ -56,6 +59,17 @@ impl PartialOrd for Float64 {
     }
 }
 
+impl Display for Float64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Float64::PlusInf => write!(f, "inf"),
+            Float64::MinusInf => write!(f, "-inf"),
+            Float64::Value(val) => write!(f, "{}", val),
+            Float64::Nan => write!(f, "NaN"),
+        }
+    }
+}
+
 impl Float64 {
     #[inline(always)]
     pub fn new(val: f64) -> Self {
@@ -75,5 +89,19 @@ impl Float64 {
             Float64::Value(v) => *v,
             Float64::Nan => f64::NAN,
         }
+    }
+
+    // #[must_use]
+    // #[inline(always)]
+    // pub fn unwrap(&self) -> f64
+}
+
+impl FromStr for Float64 {
+    type Err = ParseFloatError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let f = s.parse::<f64>()?;
+
+        Ok(Float64::new(f))
     }
 }

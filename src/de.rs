@@ -26,13 +26,15 @@ use std::str;
 use std::str::FromStr;
 use std::vec;
 
+use crate::hashable_float::Float64;
+
 use super::consts::*;
 use super::error::{Error, ErrorCode, Result};
 use super::value;
 
 type MemoId = u32;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
 enum Global {
     Set,       // builtins/__builtin__.set
     Frozenset, // builtins/__builtin__.frozenset
@@ -53,7 +55,7 @@ enum Global {
 /// We also don't use sets and maps at the Rust level, since they are not
 /// needed: nothing is ever looked up in them at this stage, and Vecs are much
 /// tighter in memory.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
 enum Value {
     MemoRef(MemoId),
     Global(Global),
@@ -61,7 +63,7 @@ enum Value {
     Bool(bool),
     I64(i64),
     Int(BigInt),
-    F64(f64),
+    F64(Float64),
     Bytes(Vec<u8>),
     String(String),
     List(Vec<Value>),
@@ -323,7 +325,7 @@ impl<R: Read> Deserializer<R> {
                 // Binary-coded numbers
                 BINFLOAT => {
                     let bytes = self.read_fixed_8_bytes()?;
-                    self.stack.push(Value::F64(BigEndian::read_f64(&bytes)));
+                    self.stack.push(Value::F64(Float64::new(BigEndian::read_f64(&bytes))));
                 }
                 BININT => {
                     let bytes = self.read_fixed_4_bytes()?;
@@ -1190,21 +1192,21 @@ impl<R: Read> Deserializer<R> {
             Value::Set(v) => {
                 let new = v
                     .into_iter()
-                    .map(|v| self.convert_value(v).and_then(|rv| rv.into_hashable()))
+                    .map(|v| self.convert_value(v).and_then(|rv| Ok(rv)))
                     .collect::<Result<_>>();
                 Ok(value::Value::Set(new?))
             }
             Value::FrozenSet(v) => {
                 let new = v
                     .into_iter()
-                    .map(|v| self.convert_value(v).and_then(|rv| rv.into_hashable()))
+                    .map(|v| self.convert_value(v).and_then(|rv| Ok(rv)))
                     .collect::<Result<_>>();
                 Ok(value::Value::FrozenSet(new?))
             }
 
             Value::Dict(v) => {
                 let iter = v.into_iter().map(|(k, v)| {
-                    let real_key = self.convert_value(k).and_then(|rv| rv.into_hashable())?;
+                    let real_key = self.convert_value(k).and_then(|rv| rv)?;
                     let real_value = self.convert_value(v)?;
                     Ok((real_key, real_value))
                 });

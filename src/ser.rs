@@ -14,9 +14,11 @@ use serde::ser::Serialize;
 use std::collections::BTreeSet;
 use std::io;
 
+// use crate::hashable_float::Float64;
+
 use super::consts::*;
 use super::error::{Error, Result};
-use super::value::{HashableValue, Value};
+use super::value::Value;
 
 /// Supported pickle protocols for writing.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -99,24 +101,6 @@ impl<W: io::Write> Serializer<W> {
         self.writer.write_all(&[opcode]).map_err(From::from)
     }
 
-    fn serialize_hashable_value(&mut self, value: &HashableValue) -> Result<()> {
-        use serde::Serializer;
-        match *value {
-            // Cases covered by the Serializer trait
-            HashableValue::None => self.serialize_unit(),
-            HashableValue::Bool(b) => self.serialize_bool(b),
-            HashableValue::I64(i) => self.serialize_i64(i),
-            HashableValue::F64(f) => self.serialize_f64(f.to_f64()),
-            HashableValue::Bytes(ref b) => self.serialize_bytes(b),
-            HashableValue::String(ref s) => self.serialize_str(s),
-            HashableValue::Int(ref i) => self.serialize_bigint(i),
-            HashableValue::FrozenSet(ref s) => self.serialize_set(s, b"frozenset"),
-            HashableValue::Tuple(ref t) => {
-                self.serialize_tuplevalue(t, |slf, v| slf.serialize_hashable_value(v))
-            }
-        }
-    }
-
     fn serialize_value(&mut self, value: &Value) -> Result<()> {
         use serde::Serializer;
         match *value {
@@ -124,7 +108,8 @@ impl<W: io::Write> Serializer<W> {
             Value::None => self.serialize_unit(),
             Value::Bool(b) => self.serialize_bool(b),
             Value::I64(i) => self.serialize_i64(i),
-            Value::F64(f) => self.serialize_f64(f),
+            // Value::F64(f) => self.serialize_f64(f),
+            Value::F64(f) => self.serialize_f64(f.to_f64()),
             Value::Bytes(ref b) => self.serialize_bytes(b),
             Value::String(ref s) => self.serialize_str(s),
             Value::List(ref l) => {
@@ -146,7 +131,7 @@ impl<W: io::Write> Serializer<W> {
                         self.write_opcode(SETITEMS)?;
                         self.write_opcode(MARK)?;
                     }
-                    self.serialize_hashable_value(key)?;
+                    self.serialize_value(key)?;
                     self.serialize_value(value)?;
                 }
                 self.write_opcode(SETITEMS)?;
@@ -218,7 +203,7 @@ impl<W: io::Write> Serializer<W> {
         }
     }
 
-    fn serialize_set(&mut self, items: &BTreeSet<HashableValue>, name: &[u8]) -> Result<()> {
+    fn serialize_set(&mut self, items: &BTreeSet<Value>, name: &[u8]) -> Result<()> {
         self.write_opcode(GLOBAL)?;
         if self.options.proto == PickleProto::V3 {
             self.writer.write_all(b"builtins\n")?;
@@ -234,7 +219,7 @@ impl<W: io::Write> Serializer<W> {
                 self.write_opcode(APPENDS)?;
                 self.write_opcode(MARK)?;
             }
-            self.serialize_hashable_value(item)?;
+            self.serialize_value(item)?;
         }
         self.write_opcode(APPENDS)?;
         self.write_opcode(TUPLE1)?;
@@ -506,6 +491,11 @@ impl<'a, W: io::Write> ser::Serializer for &'a mut Serializer<W> {
         self.write_opcode(BINFLOAT)?;
         self.writer.write_f64::<BigEndian>(value).map_err(From::from)
     }
+    // #[inline]
+    // fn serialize_f64(self, value: Float64) -> Result<()> {
+    //     self.write_opcode(BINFLOAT)?;
+    //     self.writer.write_f64::<BigEndian>(value.to_f64()).map_err(From::from)
+    // }
 
     #[inline]
     fn serialize_char(self, value: char) -> Result<()> {

@@ -25,7 +25,9 @@ use crate::error::{Error, ErrorCode};
 /// all integers are long integers, so all are pickled as such.  While decoding,
 /// we simply put all integers that fit into an i64, and use `BigInt` for the
 /// rest.
-#[derive(Clone, Debug, PartialEq)]
+// #[derive(Clone, Debug, PartialEq, Ord, PartialOrd, Eq)]
+// pub enum DictValue(HashMap
+#[derive(Clone, Debug, PartialEq, Ord, PartialOrd, Eq)]
 pub enum Value {
     /// None
     None,
@@ -36,7 +38,7 @@ pub enum Value {
     /// Long integer (unbounded length)
     Int(BigInt),
     /// Float
-    F64(f64),
+    F64(Float64),
     /// Bytestring
     Bytes(Vec<u8>),
     /// Unicode string
@@ -46,44 +48,44 @@ pub enum Value {
     /// Tuple
     Tuple(Vec<Value>),
     /// Set
-    Set(BTreeSet<HashableValue>),
+    Set(BTreeSet<Value>),
     /// Frozen (immutable) set
-    FrozenSet(BTreeSet<HashableValue>),
+    FrozenSet(BTreeSet<Value>),
     /// Dictionary (map)
-    Dict(HashMap<HashableValue, Value>),
+    Dict(HashMap<Value, Value>),
 }
 
 /// Represents all primitive builtin Python values that can be contained
 /// in a "hashable" context (i.e., as dictionary keys and set elements).
-#[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Ord)]
-pub enum HashableValue {
-    /// None
-    None,
-    /// Boolean
-    Bool(bool),
-    /// Short integer
-    I64(i64),
-    /// Long integer
-    Int(BigInt),
-    /// Float
-    F64(Float64),
-    /// Bytestring
-    Bytes(Vec<u8>),
-    /// Unicode string
-    String(String),
-    /// Tuple
-    Tuple(Vec<HashableValue>),
-    /// Frozen (immutable) set
-    FrozenSet(BTreeSet<HashableValue>),
-}
+// #[derive(Clone, Debug, Hash, PartialEq, PartialOrd, Ord)]
+// pub enum HashableValue {
+//     /// None
+//     None,
+//     /// Boolean
+//     Bool(bool),
+//     /// Short integer
+//     I64(i64),
+//     /// Long integer
+//     Int(BigInt),
+//     /// Float
+//     F64(Float64),
+//     /// Bytestring
+//     Bytes(Vec<u8>),
+//     /// Unicode string
+//     String(String),
+//     /// Tuple
+//     Tuple(Vec<HashableValue>),
+//     /// Frozen (immutable) set
+//     FrozenSet(BTreeSet<HashableValue>),
+// }
 
-fn values_to_hashable(values: Vec<Value>) -> Result<Vec<HashableValue>, Error> {
-    values.into_iter().map(Value::into_hashable).collect()
-}
+// fn values_to_hashable(values: Vec<Value>) -> Result<Vec<HashableValue>, Error> {
+//     values.into_iter().map(Value::into_hashable).collect()
+// }
 
-fn hashable_to_values(values: Vec<HashableValue>) -> Vec<Value> {
-    values.into_iter().map(HashableValue::into_value).collect()
-}
+// fn hashable_to_values(values: Vec<HashableValue>) -> Vec<Value> {
+//     values.into_iter().map(HashableValue::into_value).collect()
+// }
 
 fn split_parts(x: f64) -> (u64, u64) {
     let int_part = x.trunc() as u64;
@@ -93,45 +95,45 @@ fn split_parts(x: f64) -> (u64, u64) {
     (int_part, frac_part)
 }
 
-impl Value {
-    /// Convert the value into a hashable version, if possible.  If not, return
-    /// a ValueNotHashable error.
-    pub fn into_hashable(self) -> Result<HashableValue, Error> {
-        match self {
-            Value::None => Ok(HashableValue::None),
-            Value::Bool(b) => Ok(HashableValue::Bool(b)),
-            Value::I64(i) => Ok(HashableValue::I64(i)),
-            Value::Int(i) => Ok(HashableValue::Int(i)),
-            // Value::F64(f) => Ok(HashcableValue::F64(f)),
-            // Value::F64(f) => Err(Error::Syntax(Er)
-            // Value::F64(f) => Ok(HashableValue::F64(split_parts(f))),
-            Value::F64(f) => Ok(HashableValue::F64(Float64::new(f))),
-            Value::Bytes(b) => Ok(HashableValue::Bytes(b)),
-            Value::String(s) => Ok(HashableValue::String(s)),
-            Value::FrozenSet(v) => Ok(HashableValue::FrozenSet(v)),
-            Value::Tuple(v) => values_to_hashable(v).map(HashableValue::Tuple),
-            _ => Err(Error::Syntax(ErrorCode::ValueNotHashable)),
-        }
-    }
-}
+// impl Value {
+//     /// Convert the value into a hashable version, if possible.  If not, return
+//     /// a ValueNotHashable error.
+//     pub fn into_hashable(self) -> Result<HashableValue, Error> {
+//         match self {
+//             Value::None => Ok(HashableValue::None),
+//             Value::Bool(b) => Ok(HashableValue::Bool(b)),
+//             Value::I64(i) => Ok(HashableValue::I64(i)),
+//             Value::Int(i) => Ok(HashableValue::Int(i)),
+//             // Value::F64(f) => Ok(HashcableValue::F64(f)),
+//             // Value::F64(f) => Err(Error::Syntax(Er)
+//             // Value::F64(f) => Ok(HashableValue::F64(split_parts(f))),
+//             Value::F64(f) => Ok(HashableValue::F64(Float64::new(f))),
+//             Value::Bytes(b) => Ok(HashableValue::Bytes(b)),
+//             Value::String(s) => Ok(HashableValue::String(s)),
+//             Value::FrozenSet(v) => Ok(HashableValue::FrozenSet(v)),
+//             Value::Tuple(v) => values_to_hashable(v).map(HashableValue::Tuple),
+//             _ => Err(Error::Syntax(ErrorCode::ValueNotHashable)),
+//         }
+//     }
+// }
 
-impl HashableValue {
-    /// Convert the value into its non-hashable version.  This always works.
-    pub fn into_value(self) -> Value {
-        match self {
-            HashableValue::None => Value::None,
-            HashableValue::Bool(b) => Value::Bool(b),
-            HashableValue::I64(i) => Value::I64(i),
-            HashableValue::Int(i) => Value::Int(i),
-            // HashableValue::F64((i, f)) => Value::F64(i),
-            HashableValue::F64(f) => Value::F64(f.to_f64()),
-            HashableValue::Bytes(b) => Value::Bytes(b),
-            HashableValue::String(s) => Value::String(s),
-            HashableValue::FrozenSet(v) => Value::FrozenSet(v),
-            HashableValue::Tuple(v) => Value::Tuple(hashable_to_values(v)),
-        }
-    }
-}
+// impl HashableValue {
+//     /// Convert the value into its non-hashable version.  This always works.
+//     pub fn into_value(self) -> Value {
+//         match self {
+//             HashableValue::None => Value::None,
+//             HashableValue::Bool(b) => Value::Bool(b),
+//             HashableValue::I64(i) => Value::I64(i),
+//             HashableValue::Int(i) => Value::Int(i),
+//             // HashableValue::F64((i, f)) => Value::F64(i),
+//             HashableValue::F64(f) => Value::F64(f.to_f64()),
+//             HashableValue::Bytes(b) => Value::Bytes(b),
+//             HashableValue::String(s) => Value::String(s),
+//             HashableValue::FrozenSet(v) => Value::FrozenSet(v),
+//             HashableValue::Tuple(v) => Value::Tuple(hashable_to_values(v)),
+//         }
+//     }
+// }
 
 fn write_elements<'a, I, T>(
     f: &mut fmt::Formatter, it: I, prefix: &'static str, suffix: &'static str, len: usize, always_comma: bool,
@@ -186,23 +188,23 @@ impl fmt::Display for Value {
     }
 }
 
-impl fmt::Display for HashableValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            HashableValue::None => write!(f, "None"),
-            HashableValue::Bool(b) => write!(f, "{}", if b { "True" } else { "False" }),
-            HashableValue::I64(i) => write!(f, "{}", i),
-            HashableValue::Int(ref i) => write!(f, "{}", i),
-            HashableValue::F64(v) => write!(f, "{}", v.to_f64()),
-            HashableValue::Bytes(ref b) => write!(f, "b{:?}", b), //
-            HashableValue::String(ref s) => write!(f, "{:?}", s),
-            HashableValue::Tuple(ref v) => write_elements(f, v.iter(), "(", ")", v.len(), v.len() == 1),
-            HashableValue::FrozenSet(ref v) => {
-                write_elements(f, v.iter(), "frozenset([", "])", v.len(), false)
-            }
-        }
-    }
-}
+// impl fmt::Display for HashableValue {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         match *self {
+//             HashableValue::None => write!(f, "None"),
+//             HashableValue::Bool(b) => write!(f, "{}", if b { "True" } else { "False" }),
+//             HashableValue::I64(i) => write!(f, "{}", i),
+//             HashableValue::Int(ref i) => write!(f, "{}", i),
+//             HashableValue::F64(v) => write!(f, "{}", v.to_f64()),
+//             HashableValue::Bytes(ref b) => write!(f, "b{:?}", b), //
+//             HashableValue::String(ref s) => write!(f, "{:?}", s),
+//             HashableValue::Tuple(ref v) => write_elements(f, v.iter(), "(", ")", v.len(), v.len() == 1),
+//             HashableValue::FrozenSet(ref v) => {
+//                 write_elements(f, v.iter(), "frozenset([", "])", v.len(), false)
+//             }
+//         }
+//     }
+// }
 
 // impl PartialEq for HashableValue {
 //     fn eq(&self, other: &HashableValue) -> bool {
@@ -210,7 +212,7 @@ impl fmt::Display for HashableValue {
 //     }
 // }
 
-impl Eq for HashableValue {}
+// impl Eq for HashableValue {}
 
 // impl PartialOrd for HashableValue {
 //     fn partial_cmp(&self, other: &HashableValue) -> Option<Ordering> {

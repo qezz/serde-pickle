@@ -76,7 +76,7 @@ pub use self::de::{
     Deserializer,
 };
 
-pub use self::value::{from_value, to_value, HashableValue, Value};
+pub use self::value::{from_value, to_value, Value};
 
 pub use self::error::{Error, ErrorCode, Result};
 

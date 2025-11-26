@@ -18,7 +18,7 @@ use std::vec;
 
 use crate::error::{Error, ErrorCode, Result};
 use crate::hashable_float::Float64;
-use crate::value::{HashableValue, Value};
+use crate::value::Value;
 
 impl<'de> de::Deserialize<'de> for Value {
     #[inline]
@@ -54,7 +54,7 @@ impl<'de> de::Deserialize<'de> for Value {
 
             #[inline]
             fn visit_f64<E>(self, value: f64) -> StdResult<Value, E> {
-                Ok(Value::F64(value))
+                Ok(Value::F64(Float64::new(value)))
             }
 
             #[inline]
@@ -115,91 +115,91 @@ impl<'de> de::Deserialize<'de> for Value {
     }
 }
 
-impl<'de> de::Deserialize<'de> for HashableValue {
-    #[inline]
-    fn deserialize<D: de::Deserializer<'de>>(deser: D) -> StdResult<HashableValue, D::Error> {
-        struct ValueVisitor;
+// impl<'de> de::Deserialize<'de> for HashableValue {
+//     #[inline]
+//     fn deserialize<D: de::Deserializer<'de>>(deser: D) -> StdResult<HashableValue, D::Error> {
+//         struct ValueVisitor;
 
-        impl<'de> Visitor<'de> for ValueVisitor {
-            type Value = HashableValue;
+//         impl<'de> Visitor<'de> for ValueVisitor {
+//             type Value = HashableValue;
 
-            #[inline]
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a hashable value")
-            }
+//             #[inline]
+//             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//                 formatter.write_str("a hashable value")
+//             }
 
-            #[inline]
-            fn visit_bool<E>(self, value: bool) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::Bool(value))
-            }
+//             #[inline]
+//             fn visit_bool<E>(self, value: bool) -> StdResult<HashableValue, E> {
+//                 Ok(HashableValue::Bool(value))
+//             }
 
-            #[inline]
-            fn visit_i64<E>(self, value: i64) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::I64(value))
-            }
+//             #[inline]
+//             fn visit_i64<E>(self, value: i64) -> StdResult<HashableValue, E> {
+//                 Ok(HashableValue::I64(value))
+//             }
 
-            #[inline]
-            fn visit_u64<E>(self, value: u64) -> StdResult<HashableValue, E> {
-                if value < 0x8000_0000_0000_0000 {
-                    Ok(HashableValue::I64(value as i64))
-                } else {
-                    Ok(HashableValue::Int(BigInt::from(value)))
-                }
-            }
+//             #[inline]
+//             fn visit_u64<E>(self, value: u64) -> StdResult<HashableValue, E> {
+//                 if value < 0x8000_0000_0000_0000 {
+//                     Ok(HashableValue::I64(value as i64))
+//                 } else {
+//                     Ok(HashableValue::Int(BigInt::from(value)))
+//                 }
+//             }
 
-            #[inline]
-            fn visit_f64<E>(self, value: f64) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::F64(Float64::new(value)))
-            }
+//             #[inline]
+//             fn visit_f64<E>(self, value: f64) -> StdResult<HashableValue, E> {
+//                 Ok(HashableValue::F64(Float64::new(value)))
+//             }
 
-            #[inline]
-            fn visit_str<E: de::Error>(self, value: &str) -> StdResult<HashableValue, E> {
-                self.visit_string(String::from(value))
-            }
+//             #[inline]
+//             fn visit_str<E: de::Error>(self, value: &str) -> StdResult<HashableValue, E> {
+//                 self.visit_string(String::from(value))
+//             }
 
-            #[inline]
-            fn visit_string<E>(self, value: String) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::String(value))
-            }
+//             #[inline]
+//             fn visit_string<E>(self, value: String) -> StdResult<HashableValue, E> {
+//                 Ok(HashableValue::String(value))
+//             }
 
-            #[inline]
-            fn visit_bytes<E: de::Error>(self, value: &[u8]) -> StdResult<HashableValue, E> {
-                self.visit_byte_buf(value.to_vec())
-            }
+//             #[inline]
+//             fn visit_bytes<E: de::Error>(self, value: &[u8]) -> StdResult<HashableValue, E> {
+//                 self.visit_byte_buf(value.to_vec())
+//             }
 
-            #[inline]
-            fn visit_byte_buf<E: de::Error>(self, value: Vec<u8>) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::Bytes(value))
-            }
+//             #[inline]
+//             fn visit_byte_buf<E: de::Error>(self, value: Vec<u8>) -> StdResult<HashableValue, E> {
+//                 Ok(HashableValue::Bytes(value))
+//             }
 
-            #[inline]
-            fn visit_none<E>(self) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::None)
-            }
+//             #[inline]
+//             fn visit_none<E>(self) -> StdResult<HashableValue, E> {
+//                 Ok(HashableValue::None)
+//             }
 
-            #[inline]
-            fn visit_some<D: de::Deserializer<'de>>(self, deser: D) -> StdResult<HashableValue, D::Error> {
-                de::Deserialize::deserialize(deser)
-            }
+//             #[inline]
+//             fn visit_some<D: de::Deserializer<'de>>(self, deser: D) -> StdResult<HashableValue, D::Error> {
+//                 de::Deserialize::deserialize(deser)
+//             }
 
-            #[inline]
-            fn visit_unit<E>(self) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::None)
-            }
+//             #[inline]
+//             fn visit_unit<E>(self) -> StdResult<HashableValue, E> {
+//                 Ok(HashableValue::None)
+//             }
 
-            #[inline]
-            fn visit_seq<V: de::SeqAccess<'de>>(self, mut visitor: V) -> StdResult<HashableValue, V::Error> {
-                let mut values = Vec::new();
-                while let Some(elem) = visitor.next_element()? {
-                    values.push(elem);
-                }
-                Ok(HashableValue::Tuple(values))
-            }
-        }
+//             #[inline]
+//             fn visit_seq<V: de::SeqAccess<'de>>(self, mut visitor: V) -> StdResult<HashableValue, V::Error> {
+//                 let mut values = Vec::new();
+//                 while let Some(elem) = visitor.next_element()? {
+//                     values.push(elem);
+//                 }
+//                 Ok(HashableValue::Tuple(values))
+//             }
+//         }
 
-        deser.deserialize_any(ValueVisitor)
-    }
-}
+//         deser.deserialize_any(ValueVisitor)
+//     }
+// }
 
 /// Deserializes a decoded value into any serde supported value.
 pub struct Deserializer {
@@ -380,7 +380,7 @@ impl<'de: 'a, 'a> de::SeqAccess<'de> for SeqDeserializer<'a> {
 struct MapDeserializer<'a> {
     de: &'a mut Deserializer,
     // iter: btree_map::IntoIter<HashableValue, Value>,
-    iter: hash_map::IntoIter<HashableValue, Value>,
+    iter: hash_map::IntoIter<Value, Value>,
     value: Option<Value>,
     len: usize,
 }
@@ -393,7 +393,7 @@ impl<'de: 'a, 'a> de::MapAccess<'de> for MapDeserializer<'a> {
             Some((key, value)) => {
                 self.len -= 1;
                 self.value = Some(value);
-                self.de.value = Some(key.into_value());
+                self.de.value = Some(key);
                 Ok(Some(seed.deserialize(&mut *self.de)?))
             }
             None => Ok(None),
@@ -490,7 +490,8 @@ impl<'a> ser::SerializeTupleVariant for SerializeTupleVariant<'a> {
     #[inline]
     fn end(self) -> Result<Value> {
         let mut d = HashMap::new();
-        d.insert(HashableValue::String(self.variant.into()), Value::List(self.state));
+        // d.insert(HashableValue::String(self.variant.into()), Value::List(self.state));
+        d.insert(self.variant, Value::List(self.state));
         Ok(Value::Dict(d))
     }
 }
@@ -498,8 +499,8 @@ impl<'a> ser::SerializeTupleVariant for SerializeTupleVariant<'a> {
 pub struct SerializeMap<'a> {
     ser: &'a mut Serializer,
     variant: &'a str,
-    key: Option<HashableValue>,
-    state: HashMap<HashableValue, Value>,
+    key: Option<Value>,
+    state: HashMap<Value, Value>,
 }
 
 impl<'a> ser::SerializeMap for SerializeMap<'a> {
@@ -509,7 +510,7 @@ impl<'a> ser::SerializeMap for SerializeMap<'a> {
     #[inline]
     fn serialize_key<T: Serialize + ?Sized>(&mut self, key: &T) -> Result<()> {
         let key = key.serialize(&mut *self.ser)?;
-        self.key = Some(key.into_hashable()?);
+        self.key = Some(key);
         Ok(())
     }
 
@@ -534,7 +535,6 @@ impl<'a> ser::SerializeStruct for SerializeMap<'a> {
     #[inline]
     fn serialize_field<T: Serialize + ?Sized>(&mut self, key: &'static str, value: &T) -> Result<()> {
         let key = key.serialize(&mut *self.ser)?;
-        let key = key.into_hashable()?;
         let value = value.serialize(&mut *self.ser)?;
         self.state.insert(key, value);
         Ok(())
