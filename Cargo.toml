@@ -16,6 +16,7 @@ byteorder = "1.5.0"
 num-bigint = "0.4.4"
 num-traits = "0.2.18"
 iter-read = "1.1.0"
+indexmap = { version = "2.11.4", features = ["serde"] }
 
 # For the example binary and the test suite.
 [dev-dependencies]
