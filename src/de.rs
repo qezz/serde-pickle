@@ -55,19 +55,19 @@ enum Global {
 /// tighter in memory.
 #[derive(Clone, Debug, PartialEq)]
 enum Value {
-    MemoRef(MemoId),
-    Global(Global),
+    // MemoRef(MemoId),
+    // Global(Global),
     None,
     Bool(bool),
     I64(i64),
-    Int(BigInt),
+    // Int(BigInt),
     F64(f64),
     Bytes(Vec<u8>),
-    String(String),
+    // String(String),
     List(Vec<Value>),
-    Tuple(Vec<Value>),
-    Set(Vec<Value>),
-    FrozenSet(Vec<Value>),
+    // Tuple(Vec<Value>),
+    // Set(Vec<Value>),
+    // FrozenSet(Vec<Value>),
     Dict(Vec<(Value, Value)>),
 }
 
@@ -349,18 +349,18 @@ impl<R: Read> Deserializer<R> {
                 }
 
                 // Length-prefixed (byte)strings
-                SHORT_BINBYTES => {
-                    let string = self.read_u8_prefixed_bytes()?;
-                    self.stack.push(Value::Bytes(string));
-                }
-                BINBYTES => {
-                    let string = self.read_u32_prefixed_bytes()?;
-                    self.stack.push(Value::Bytes(string));
-                }
-                BINBYTES8 => {
-                    let string = self.read_u64_prefixed_bytes()?;
-                    self.stack.push(Value::Bytes(string));
-                }
+                // SHORT_BINBYTES => {
+                //     let string = self.read_u8_prefixed_bytes()?;
+                //     self.stack.push(Value::Bytes(string));
+                // }
+                // BINBYTES => {
+                //     let string = self.read_u32_prefixed_bytes()?;
+                //     self.stack.push(Value::Bytes(string));
+                // }
+                // BINBYTES8 => {
+                //     let string = self.read_u64_prefixed_bytes()?;
+                //     self.stack.push(Value::Bytes(string));
+                // }
                 SHORT_BINSTRING => {
                     let string = self.read_u8_prefixed_bytes()?;
                     let decoded = self.decode_string(string)?;
@@ -386,32 +386,32 @@ impl<R: Read> Deserializer<R> {
                     let decoded = self.decode_unicode(string)?;
                     self.stack.push(decoded);
                 }
-                BYTEARRAY8 => {
-                    let string = self.read_u64_prefixed_bytes()?;
-                    self.stack.push(Value::Bytes(string));
-                }
+                // BYTEARRAY8 => {
+                //     let string = self.read_u64_prefixed_bytes()?;
+                //     self.stack.push(Value::Bytes(string));
+                // }
 
                 // Tuples
-                EMPTY_TUPLE => self.stack.push(Value::Tuple(Vec::new())),
-                TUPLE1 => {
-                    let item = self.pop()?;
-                    self.stack.push(Value::Tuple(vec![item]));
-                }
-                TUPLE2 => {
-                    let item2 = self.pop()?;
-                    let item1 = self.pop()?;
-                    self.stack.push(Value::Tuple(vec![item1, item2]));
-                }
-                TUPLE3 => {
-                    let item3 = self.pop()?;
-                    let item2 = self.pop()?;
-                    let item1 = self.pop()?;
-                    self.stack.push(Value::Tuple(vec![item1, item2, item3]));
-                }
-                TUPLE => {
-                    let items = self.pop_mark()?;
-                    self.stack.push(Value::Tuple(items));
-                }
+                // EMPTY_TUPLE => self.stack.push(Value::Tuple(Vec::new())),
+                // TUPLE1 => {
+                //     let item = self.pop()?;
+                //     self.stack.push(Value::Tuple(vec![item]));
+                // }
+                // TUPLE2 => {
+                //     let item2 = self.pop()?;
+                //     let item1 = self.pop()?;
+                //     self.stack.push(Value::Tuple(vec![item1, item2]));
+                // }
+                // TUPLE3 => {
+                //     let item3 = self.pop()?;
+                //     let item2 = self.pop()?;
+                //     let item1 = self.pop()?;
+                //     self.stack.push(Value::Tuple(vec![item1, item2, item3]));
+                // }
+                // TUPLE => {
+                //     let items = self.pop_mark()?;
+                //     self.stack.push(Value::Tuple(items));
+                // }
 
                 // Lists
                 EMPTY_LIST => self.stack.push(Value::List(Vec::new())),
@@ -447,11 +447,11 @@ impl<R: Read> Deserializer<R> {
                 }
 
                 // Sets and frozensets
-                EMPTY_SET => self.stack.push(Value::Set(Vec::new())),
-                FROZENSET => {
-                    let items = self.pop_mark()?;
-                    self.stack.push(Value::FrozenSet(items));
-                }
+                // EMPTY_SET => self.stack.push(Value::Set(Vec::new())),
+                // FROZENSET => {
+                //     let items = self.pop_mark()?;
+                //     self.stack.push(Value::FrozenSet(items));
+                // }
                 ADDITEMS => {
                     let items = self.pop_mark()?;
                     self.modify_set(|set| set.extend(items))?;
@@ -477,40 +477,40 @@ impl<R: Read> Deserializer<R> {
                     let value = self.decode_global(modname, globname)?;
                     self.stack.push(value);
                 }
-                REDUCE => {
-                    let argtuple = match self.pop_resolve()? {
-                        Value::Tuple(args) => args,
-                        other => return Self::stack_error("tuple", &other, self.pos),
-                    };
-                    let global = self.pop_resolve()?;
-                    self.reduce_global(global, argtuple)?;
-                }
+                // REDUCE => {
+                //     let argtuple = match self.pop_resolve()? {
+                //         Value::Tuple(args) => args,
+                //         other => return Self::stack_error("tuple", &other, self.pos),
+                //     };
+                //     let global = self.pop_resolve()?;
+                //     self.reduce_global(global, argtuple)?;
+                // }
 
                 // Arbitrary classes - make a best effort attempt to recover some data
-                INST => {
-                    // pop module name and class name
-                    for _ in 0..2 {
-                        self.read_line()?;
-                    }
-                    // pop arguments to init
-                    let args = self.pop_mark()?;
-                    if self.options.keep_restore_state {
-                        self.stack.push(Value::Tuple(args));
-                    } else {
-                        self.stack.push(Value::Dict(Vec::new()));
-                    }
-                }
-                OBJ => {
-                    // pop arguments to init
-                    let args = self.pop_mark()?;
-                    // pop class object
-                    self.pop()?;
-                    if self.options.keep_restore_state {
-                        self.stack.push(Value::Tuple(args));
-                    } else {
-                        self.stack.push(Value::Dict(Vec::new()));
-                    }
-                }
+                // INST => {
+                //     // pop module name and class name
+                //     for _ in 0..2 {
+                //         self.read_line()?;
+                //     }
+                //     // pop arguments to init
+                //     let args = self.pop_mark()?;
+                //     if self.options.keep_restore_state {
+                //         self.stack.push(Value::Tuple(args));
+                //     } else {
+                //         self.stack.push(Value::Dict(Vec::new()));
+                //     }
+                // }
+                // OBJ => {
+                //     // pop arguments to init
+                //     let args = self.pop_mark()?;
+                //     // pop class object
+                //     self.pop()?;
+                //     if self.options.keep_restore_state {
+                //         self.stack.push(Value::Tuple(args));
+                //     } else {
+                //         self.stack.push(Value::Dict(Vec::new()));
+                //     }
+                // }
                 NEWOBJ => {
                     // pop arguments and class object
                     let args = self.pop()?;
@@ -521,17 +521,17 @@ impl<R: Read> Deserializer<R> {
                         self.stack.push(Value::Dict(Vec::new()));
                     }
                 }
-                NEWOBJ_EX => {
-                    // pop keyword args, arguments and class object
-                    let kwargs = self.pop()?;
-                    let args = self.pop()?;
-                    self.pop()?;
-                    if self.options.keep_restore_state {
-                        self.stack.push(Value::Tuple(vec![args, kwargs]));
-                    } else {
-                        self.stack.push(Value::Dict(Vec::new()));
-                    }
-                }
+                // NEWOBJ_EX => {
+                //     // pop keyword args, arguments and class object
+                //     let kwargs = self.pop()?;
+                //     let args = self.pop()?;
+                //     self.pop()?;
+                //     if self.options.keep_restore_state {
+                //         self.stack.push(Value::Tuple(vec![args, kwargs]));
+                //     } else {
+                //         self.stack.push(Value::Dict(Vec::new()));
+                //     }
+                // }
                 BUILD => {
                     // The top-of-stack for BUILD is used either as the instance __dict__,
                     // or an argument for __setstate__, in which case it can be *any* type
@@ -559,7 +559,8 @@ impl<R: Read> Deserializer<R> {
     fn pop_resolve(&mut self) -> Result<Value> {
         let top = self.stack.pop();
         match top {
-            Some(v) => self.resolve(v),
+            // Some(v) => self.resolve(v),
+            Sove(v) => Ok(v),
             None => self.error(ErrorCode::StackUnderflow),
         }
     }
@@ -575,40 +576,40 @@ impl<R: Read> Deserializer<R> {
     // Mutably view the stack top item.
     fn top(&mut self) -> Result<&mut Value> {
         match self.stack.last_mut() {
-            // Since some operations like APPEND do things to the stack top, we
-            // need to provide the reference to the "real" object here, not the
-            // MemoRef variant.
-            Some(&mut Value::MemoRef(n)) => {
-                let idx = n as usize;
-                if idx < self.memo.len() {
-                    self.memo[idx]
-                        .as_mut()
-                        .map(|(ref mut v, _)| v)
-                        .ok_or(Error::Syntax(ErrorCode::MissingMemo(n)))
-                } else {
-                    Err(Error::Syntax(ErrorCode::MissingMemo(n)))
-                }
-            }
+            // // Since some operations like APPEND do things to the stack top, we
+            // // need to provide the reference to the "real" object here, not the
+            // // MemoRef variant.
+            // Some(&mut Value::MemoRef(n)) => {
+            //     let idx = n as usize;
+            //     if idx < self.memo.len() {
+            //         self.memo[idx]
+            //             .as_mut()
+            //             .map(|(ref mut v, _)| v)
+            //             .ok_or(Error::Syntax(ErrorCode::MissingMemo(n)))
+            //     } else {
+            //         Err(Error::Syntax(ErrorCode::MissingMemo(n)))
+            //     }
+            // }
             Some(other_value) => Ok(other_value),
             None => Err(Error::Eval(ErrorCode::StackUnderflow, self.pos)),
         }
     }
 
     // Pushes a memo reference on the stack, and increases the usage counter.
-    fn push_memo_ref(&mut self, memo_id: MemoId) -> Result<()> {
-        self.stack.push(Value::MemoRef(memo_id));
-        let idx = memo_id as usize;
-        if idx >= self.memo.len() {
-            return Err(Error::Eval(ErrorCode::MissingMemo(memo_id), self.pos));
-        }
-        match &mut self.memo[idx] {
-            Some((_, ref mut count)) => {
-                *count += 1;
-                Ok(())
-            }
-            None => Err(Error::Eval(ErrorCode::MissingMemo(memo_id), self.pos)),
-        }
-    }
+    // fn push_memo_ref(&mut self, memo_id: MemoId) -> Result<()> {
+    //     self.stack.push(Value::MemoRef(memo_id));
+    //     let idx = memo_id as usize;
+    //     if idx >= self.memo.len() {
+    //         return Err(Error::Eval(ErrorCode::MissingMemo(memo_id), self.pos));
+    //     }
+    //     match &mut self.memo[idx] {
+    //         Some((_, ref mut count)) => {
+    //             *count += 1;
+    //             Ok(())
+    //         }
+    //         None => Err(Error::Eval(ErrorCode::MissingMemo(memo_id), self.pos)),
+    //     }
+    // }
 
     // Memoize the current stack top with the given ID.  Moves the actual
     // object into the memo, and saves a reference on the stack instead.
@@ -618,17 +619,17 @@ impl<R: Read> Deserializer<R> {
         let mut item = self.pop()?;
         // println!("orig item: {:?}", item);
 
-        if let Value::MemoRef(id) = item {
-            // println!("id: {}", id);
-            // TODO: is this even possible?
-            let idx = id as usize;
-            item = match self.memo.get(idx).and_then(|opt| opt.as_ref()) {
-                Some((v, _)) => v.clone(),
-                None => return Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos)),
-            };
+        // if let Value::MemoRef(id) = item {
+        //     // println!("id: {}", id);
+        //     // TODO: is this even possible?
+        //     let idx = id as usize;
+        //     item = match self.memo.get(idx).and_then(|opt| opt.as_ref()) {
+        //         Some((v, _)) => v.clone(),
+        //         None => return Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos)),
+        //     };
 
-            // println!("updated item: {:?}", item);
-        }
+        //     // println!("updated item: {:?}", item);
+        // }
 
         let idx = memo_id as usize;
         // Grow the vector if necessary (similar to C's ResizeMemoList)
@@ -647,32 +648,32 @@ impl<R: Read> Deserializer<R> {
         }
 
         self.memo[idx] = Some((item, 1));
-        self.stack.push(Value::MemoRef(memo_id));
+        // self.stack.push(Value::MemoRef(memo_id));
         Ok(())
     }
 
     // Resolve memo reference during stream decoding.
-    fn resolve(&mut self, memo: Value) -> Result<Value> {
-        match memo {
-            Value::MemoRef(id) => {
-                let idx = id as usize;
-                if idx >= self.memo.len() {
-                    return Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos));
-                }
-                match &mut self.memo[idx] {
-                    None => Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos)),
-                    Some((ref val, ref mut count)) => {
-                        // We can't remove it from the memo here, since we haven't
-                        // decoded the whole stream yet and there may be further
-                        // references to the value.
-                        *count -= 1;
-                        Ok(val.clone())
-                    }
-                }
-            }
-            other => Ok(other),
-        }
-    }
+    // fn resolve(&mut self, memo: Value) -> Result<Value> {
+    //     match memo {
+    //         Value::MemoRef(id) => {
+    //             let idx = id as usize;
+    //             if idx >= self.memo.len() {
+    //                 return Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos));
+    //             }
+    //             match &mut self.memo[idx] {
+    //                 None => Err(Error::Eval(ErrorCode::MissingMemo(id), self.pos)),
+    //                 Some((ref val, ref mut count)) => {
+    //                     // We can't remove it from the memo here, since we haven't
+    //                     // decoded the whole stream yet and there may be further
+    //                     // references to the value.
+    //                     *count -= 1;
+    //                     Ok(val.clone())
+    //                 }
+    //             }
+    //         }
+    //         other => Ok(other),
+    //     }
+    // }
 
     // Resolve memo reference during Value deserializing.
     fn resolve_recursive<T, U, F>(&mut self, id: MemoId, u: U, f: F) -> Result<T>
@@ -868,16 +869,16 @@ impl<R: Read> Deserializer<R> {
     }
 
     // Decode a text-encoded long integer.
-    fn decode_text_long(&self, mut line: Vec<u8>) -> Result<Value> {
-        // Remove "L" suffix.
-        if line.last() == Some(&b'L') {
-            line.pop();
-        }
-        match BigInt::parse_bytes(&line, 10) {
-            Some(i) => Ok(Value::Int(i)),
-            None => self.error(ErrorCode::InvalidLiteral(line)),
-        }
-    }
+    // fn decode_text_long(&self, mut line: Vec<u8>) -> Result<Value> {
+    //     // Remove "L" suffix.
+    //     if line.last() == Some(&b'L') {
+    //         line.pop();
+    //     }
+    //     match BigInt::parse_bytes(&line, 10) {
+    //         Some(i) => Ok(Value::Int(i)),
+    //         None => self.error(ErrorCode::InvalidLiteral(line)),
+    //     }
+    // }
 
     // Decode an escaped string.  These are encoded with "normal" Python string
     // escape rules.
@@ -1058,102 +1059,102 @@ impl<R: Read> Deserializer<R> {
     }
 
     // Handle the REDUCE opcode for the few Global objects we support.
-    fn reduce_global(&mut self, global: Value, mut argtuple: Vec<Value>) -> Result<()> {
-        match global {
-            Value::Global(Global::Set) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                Some(Value::List(items)) => {
-                    self.stack.push(Value::Set(items));
-                    Ok(())
-                }
-                _ => self.error(ErrorCode::InvalidValue("set() arg".into())),
-            },
-            Value::Global(Global::Frozenset) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                Some(Value::List(items)) => {
-                    self.stack.push(Value::FrozenSet(items));
-                    Ok(())
-                }
-                _ => self.error(ErrorCode::InvalidValue("frozenset() arg".into())),
-            },
-            Value::Global(Global::Bytearray) => {
-                // On Py2, the call is encoded as bytearray(u"foo", "latin-1").
-                argtuple.truncate(1);
-                match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                    Some(Value::Bytes(bytes)) => {
-                        self.stack.push(Value::Bytes(bytes));
-                        Ok(())
-                    }
-                    Some(Value::String(string)) => {
-                        // The code points in the string are actually bytes values.
-                        // So we need to collect them individually.
-                        self.stack
-                            .push(Value::Bytes(string.chars().map(|ch| ch as u32 as u8).collect()));
-                        Ok(())
-                    }
-                    _ => self.error(ErrorCode::InvalidValue("bytearray() arg".into())),
-                }
-            }
-            Value::Global(Global::List) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                Some(Value::List(items)) => {
-                    self.stack.push(Value::List(items));
-                    Ok(())
-                }
-                _ => self.error(ErrorCode::InvalidValue("list() arg".into())),
-            },
-            Value::Global(Global::Int) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                Some(Value::Int(integer)) => {
-                    self.stack.push(Value::Int(integer));
-                    Ok(())
-                }
-                _ => self.error(ErrorCode::InvalidValue("int() arg".into())),
-            },
-            Value::Global(Global::Encode) => {
-                // Byte object encoded as _codecs.encode(x, 'latin1')
-                match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                    // Encoding, always latin1
-                    Some(Value::String(_)) => {}
-                    _ => return self.error(ErrorCode::InvalidValue("encode() arg".into())),
-                }
-                match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                    Some(Value::String(s)) => {
-                        // Now we have to convert the string to latin-1
-                        // encoded bytes.  It never contains codepoints
-                        // above 0xff.
-                        let bytes = s.chars().map(|ch| ch as u8).collect();
-                        self.stack.push(Value::Bytes(bytes));
-                        Ok(())
-                    }
-                    _ => self.error(ErrorCode::InvalidValue("encode() arg".into())),
-                }
-            }
-            Value::Global(Global::Reconst) => {
-                // Arguments are (class, base, state), we keep state if enabled,
-                // else push an empty dict (for compatibility with NEWOBJ below).
-                if self.options.keep_restore_state {
-                    let state = match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
-                        Some(obj) => obj,
-                        None => Value::Dict(Vec::new()),
-                    };
-                    self.stack.push(state);
-                } else {
-                    self.stack.push(Value::Dict(Vec::new()));
-                }
-                Ok(())
-            }
-            Value::Global(Global::Other) => {
-                // Anything else; just keep it on the stack as an opaque object.
-                // If it is a class object, it will get replaced later when the
-                // class is instantiated.
-                if self.options.keep_restore_state {
-                    let result: Result<_> = argtuple.into_iter().map(|v| self.resolve(v)).collect();
-                    self.stack.push(Value::Tuple(result?));
-                } else {
-                    self.stack.push(Value::Global(Global::Other));
-                }
-                Ok(())
-            }
-            other => Self::stack_error("global reference", &other, self.pos),
-        }
-    }
+    // fn reduce_global(&mut self, global: Value, mut argtuple: Vec<Value>) -> Result<()> {
+    //     match global {
+    //         Value::Global(Global::Set) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //             Some(Value::List(items)) => {
+    //                 self.stack.push(Value::Set(items));
+    //                 Ok(())
+    //             }
+    //             _ => self.error(ErrorCode::InvalidValue("set() arg".into())),
+    //         },
+    //         Value::Global(Global::Frozenset) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //             Some(Value::List(items)) => {
+    //                 self.stack.push(Value::FrozenSet(items));
+    //                 Ok(())
+    //             }
+    //             _ => self.error(ErrorCode::InvalidValue("frozenset() arg".into())),
+    //         },
+    //         Value::Global(Global::Bytearray) => {
+    //             // On Py2, the call is encoded as bytearray(u"foo", "latin-1").
+    //             argtuple.truncate(1);
+    //             match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //                 Some(Value::Bytes(bytes)) => {
+    //                     self.stack.push(Value::Bytes(bytes));
+    //                     Ok(())
+    //                 }
+    //                 Some(Value::String(string)) => {
+    //                     // The code points in the string are actually bytes values.
+    //                     // So we need to collect them individually.
+    //                     self.stack
+    //                         .push(Value::Bytes(string.chars().map(|ch| ch as u32 as u8).collect()));
+    //                     Ok(())
+    //                 }
+    //                 _ => self.error(ErrorCode::InvalidValue("bytearray() arg".into())),
+    //             }
+    //         }
+    //         Value::Global(Global::List) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //             Some(Value::List(items)) => {
+    //                 self.stack.push(Value::List(items));
+    //                 Ok(())
+    //             }
+    //             _ => self.error(ErrorCode::InvalidValue("list() arg".into())),
+    //         },
+    //         Value::Global(Global::Int) => match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //             Some(Value::Int(integer)) => {
+    //                 self.stack.push(Value::Int(integer));
+    //                 Ok(())
+    //             }
+    //             _ => self.error(ErrorCode::InvalidValue("int() arg".into())),
+    //         },
+    //         Value::Global(Global::Encode) => {
+    //             // Byte object encoded as _codecs.encode(x, 'latin1')
+    //             match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //                 // Encoding, always latin1
+    //                 Some(Value::String(_)) => {}
+    //                 _ => return self.error(ErrorCode::InvalidValue("encode() arg".into())),
+    //             }
+    //             match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //                 Some(Value::String(s)) => {
+    //                     // Now we have to convert the string to latin-1
+    //                     // encoded bytes.  It never contains codepoints
+    //                     // above 0xff.
+    //                     let bytes = s.chars().map(|ch| ch as u8).collect();
+    //                     self.stack.push(Value::Bytes(bytes));
+    //                     Ok(())
+    //                 }
+    //                 _ => self.error(ErrorCode::InvalidValue("encode() arg".into())),
+    //             }
+    //         }
+    //         Value::Global(Global::Reconst) => {
+    //             // Arguments are (class, base, state), we keep state if enabled,
+    //             // else push an empty dict (for compatibility with NEWOBJ below).
+    //             if self.options.keep_restore_state {
+    //                 let state = match argtuple.pop().map(|v| self.resolve(v)).transpose()? {
+    //                     Some(obj) => obj,
+    //                     None => Value::Dict(Vec::new()),
+    //                 };
+    //                 self.stack.push(state);
+    //             } else {
+    //                 self.stack.push(Value::Dict(Vec::new()));
+    //             }
+    //             Ok(())
+    //         }
+    //         Value::Global(Global::Other) => {
+    //             // Anything else; just keep it on the stack as an opaque object.
+    //             // If it is a class object, it will get replaced later when the
+    //             // class is instantiated.
+    //             if self.options.keep_restore_state {
+    //                 let result: Result<_> = argtuple.into_iter().map(|v| self.resolve(v)).collect();
+    //                 self.stack.push(Value::Tuple(result?));
+    //             } else {
+    //                 self.stack.push(Value::Global(Global::Other));
+    //             }
+    //             Ok(())
+    //         }
+    //         other => Self::stack_error("global reference", &other, self.pos),
+    //     }
+    // }
 
     fn stack_error<T>(what: &'static str, value: &Value, pos: usize) -> Result<T> {
         let it = format!("{:?}", value);
@@ -1165,63 +1166,67 @@ impl<R: Read> Deserializer<R> {
     }
 
     fn convert_value(&mut self, value: Value) -> Result<value::Value> {
-        match value {
-            Value::None => Ok(value::Value::None),
-            Value::Bool(v) => Ok(value::Value::Bool(v)),
-            Value::I64(v) => Ok(value::Value::I64(v)),
-            Value::Int(v) => {
-                if let Some(i) = v.to_i64() {
-                    Ok(value::Value::I64(i))
-                } else {
-                    Ok(value::Value::Int(v))
-                }
-            }
-            Value::F64(v) => Ok(value::Value::F64(v)),
-            Value::Bytes(v) => Ok(value::Value::Bytes(v)),
-            Value::String(v) => Ok(value::Value::String(v)),
-            Value::List(v) => {
-                let new = v.into_iter().map(|v| self.convert_value(v)).collect::<Result<_>>();
-                Ok(value::Value::List(new?))
-            }
-            Value::Tuple(v) => {
-                let new = v.into_iter().map(|v| self.convert_value(v)).collect::<Result<_>>();
-                Ok(value::Value::Tuple(new?))
-            }
-            Value::Set(v) => {
-                let new = v
-                    .into_iter()
-                    .map(|v| self.convert_value(v).and_then(|rv| rv.into_hashable()))
-                    .collect::<Result<_>>();
-                Ok(value::Value::Set(new?))
-            }
-            Value::FrozenSet(v) => {
-                let new = v
-                    .into_iter()
-                    .map(|v| self.convert_value(v).and_then(|rv| rv.into_hashable()))
-                    .collect::<Result<_>>();
-                Ok(value::Value::FrozenSet(new?))
-            }
-            Value::Dict(v) => {
-                let mut map = BTreeMap::new();
-                for (key, value) in v {
-                    let real_key = self.convert_value(key).and_then(|rv| rv.into_hashable())?;
-                    let real_value = self.convert_value(value)?;
-                    map.insert(real_key, real_value);
-                }
-                Ok(value::Value::Dict(map))
-            }
-            Value::MemoRef(memo_id) => {
-                self.resolve_recursive(memo_id, (), |slf, (), value| slf.convert_value(value))
-            }
-            Value::Global(_) => {
-                if self.options.replace_unresolved_globals {
-                    Ok(value::Value::None)
-                } else {
-                    Err(Error::Syntax(ErrorCode::UnresolvedGlobal))
-                }
-            }
-        }
+        Ok(value)
     }
+
+    // fn convert_value(&mut self, value: Value) -> Result<value::Value> {
+    //     match value {
+    //         Value::None => Ok(value::Value::None),
+    //         Value::Bool(v) => Ok(value::Value::Bool(v)),
+    //         Value::I64(v) => Ok(value::Value::I64(v)),
+    //         // Value::Int(v) => {
+    //         //     if let Some(i) = v.to_i64() {
+    //         //         Ok(value::Value::I64(i))
+    //         //     } else {
+    //         //         Ok(value::Value::Int(v))
+    //         //     }
+    //         // }
+    //         Value::F64(v) => Ok(value::Value::F64(v)),
+    //         Value::Bytes(v) => Ok(value::Value::Bytes(v)),
+    //         Value::String(v) => Ok(value::Value::String(v)),
+    //         Value::List(v) => {
+    //             let new = v.into_iter().map(|v| self.convert_value(v)).collect::<Result<_>>();
+    //             Ok(value::Value::List(new?))
+    //         }
+    //         // Value::Tuple(v) => {
+    //         //     let new = v.into_iter().map(|v| self.convert_value(v)).collect::<Result<_>>();
+    //         //     Ok(value::Value::Tuple(new?))
+    //         // }
+    //         // Value::Set(v) => {
+    //         //     let new = v
+    //         //         .into_iter()
+    //         //         .map(|v| self.convert_value(v).and_then(|rv| rv.into_hashable()))
+    //         //         .collect::<Result<_>>();
+    //         //     Ok(value::Value::Set(new?))
+    //         // }
+    //         // Value::FrozenSet(v) => {
+    //         //     let new = v
+    //         //         .into_iter()
+    //         //         .map(|v| self.convert_value(v).and_then(|rv| rv.into_hashable()))
+    //         //         .collect::<Result<_>>();
+    //         //     Ok(value::Value::FrozenSet(new?))
+    //         // }
+    //         Value::Dict(v) => {
+    //             let mut map = BTreeMap::new();
+    //             for (key, value) in v {
+    //                 let real_key = self.convert_value(key).and_then(|rv| rv.into_hashable())?;
+    //                 let real_value = self.convert_value(value)?;
+    //                 map.insert(real_key, real_value);
+    //             }
+    //             Ok(value::Value::Dict(map))
+    //         }
+    //         Value::MemoRef(memo_id) => {
+    //             self.resolve_recursive(memo_id, (), |slf, (), value| slf.convert_value(value))
+    //         }
+    //         Value::Global(_) => {
+    //             if self.options.replace_unresolved_globals {
+    //                 Ok(value::Value::None)
+    //             } else {
+    //                 Err(Error::Syntax(ErrorCode::UnresolvedGlobal))
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 impl<'de: 'a, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {

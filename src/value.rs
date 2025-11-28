@@ -32,98 +32,101 @@ pub enum Value {
     Bool(bool),
     /// Short integer
     I64(i64),
-    /// Long integer (unbounded length)
-    Int(BigInt),
+    // /// Long integer (unbounded length)
+    // Int(BigInt),
     /// Float
     F64(f64),
     /// Bytestring
     Bytes(Vec<u8>),
     /// Unicode string
-    String(String),
+    // String(String),
     /// List
-    List(Vec<Value>),
-    /// Tuple
-    Tuple(Vec<Value>),
-    /// Set
-    Set(BTreeSet<HashableValue>),
-    /// Frozen (immutable) set
-    FrozenSet(BTreeSet<HashableValue>),
+    List(Sequence),
+    // /// Tuple
+    // Tuple(Vec<Value>),
+    // /// Set
+    // Set(BTreeSet<HashableValue>),
     /// Dictionary (map)
-    Dict(BTreeMap<HashableValue, Value>),
+    Dict(Mapping),
 }
 
-/// Represents all primitive builtin Python values that can be contained
-/// in a "hashable" context (i.e., as dictionary keys and set elements).
-///
-/// In Rust, the type is *not* hashable, since we use B-tree maps and sets
-/// instead of the hash variants.  To be able to put all Value instances
-/// into these B-trees, we implement a consistent ordering between all
-/// the possible types (see below).
-#[derive(Clone, Debug)]
-pub enum HashableValue {
-    /// None
-    None,
-    /// Boolean
-    Bool(bool),
-    /// Short integer
-    I64(i64),
-    /// Long integer
-    Int(BigInt),
-    /// Float
-    F64(f64),
-    /// Bytestring
-    Bytes(Vec<u8>),
-    /// Unicode string
-    String(String),
-    /// Tuple
-    Tuple(Vec<HashableValue>),
-    /// Frozen (immutable) set
-    FrozenSet(BTreeSet<HashableValue>),
-}
+// /// Represents all primitive builtin Python values that can be contained
+// /// in a "hashable" context (i.e., as dictionary keys and set elements).
+// ///
+// /// In Rust, the type is *not* hashable, since we use B-tree maps and sets
+// /// instead of the hash variants.  To be able to put all Value instances
+// /// into these B-trees, we implement a consistent ordering between all
+// /// the possible types (see below).
+// #[derive(Clone, Debug)]
+// pub enum HashableValue {
+//     /// None
+//     None,
+//     /// Boolean
+//     // Bool(bool),
+//     // /// Short integer
+//     // I64(i64),
+//     // /// Long integer
+//     // Int(BigInt),
+//     // /// Float
+//     // F64(f64),
+//     // /// Bytestring
+//     // Bytes(Vec<u8>),
+//     // /// Unicode string
+//     // String(String),
+//     // /// Tuple
+//     // Tuple(Vec<HashableValue>),
+//     // /// Frozen (immutable) set
+//     // FrozenSet(BTreeSet<HashableValue>),
 
-fn values_to_hashable(values: Vec<Value>) -> Result<Vec<HashableValue>, Error> {
-    values.into_iter().map(Value::into_hashable).collect()
-}
+//     Bool(bool),
+//     Number(Number),
+//     String(String),
+//     Sequence(Sequence),
+//     Mapping(Mapping),}
 
-fn hashable_to_values(values: Vec<HashableValue>) -> Vec<Value> {
-    values.into_iter().map(HashableValue::into_value).collect()
-}
+// fn values_to_hashable(values: Vec<Value>) -> Result<Vec<HashableValue>, Error> {
+//     values.into_iter().map(Value::into_hashable).collect()
+// }
 
-impl Value {
-    /// Convert the value into a hashable version, if possible.  If not, return
-    /// a ValueNotHashable error.
-    pub fn into_hashable(self) -> Result<HashableValue, Error> {
-        match self {
-            Value::None => Ok(HashableValue::None),
-            Value::Bool(b) => Ok(HashableValue::Bool(b)),
-            Value::I64(i) => Ok(HashableValue::I64(i)),
-            Value::Int(i) => Ok(HashableValue::Int(i)),
-            Value::F64(f) => Ok(HashableValue::F64(f)),
-            Value::Bytes(b) => Ok(HashableValue::Bytes(b)),
-            Value::String(s) => Ok(HashableValue::String(s)),
-            Value::FrozenSet(v) => Ok(HashableValue::FrozenSet(v)),
-            Value::Tuple(v) => values_to_hashable(v).map(HashableValue::Tuple),
-            _ => Err(Error::Syntax(ErrorCode::ValueNotHashable)),
-        }
-    }
-}
+// fn hashable_to_values(values: Vec<HashableValue>) -> Vec<Value> {
+//     values.into_iter().map(HashableValue::into_value).collect()
+// }
 
-impl HashableValue {
-    /// Convert the value into its non-hashable version.  This always works.
-    pub fn into_value(self) -> Value {
-        match self {
-            HashableValue::None => Value::None,
-            HashableValue::Bool(b) => Value::Bool(b),
-            HashableValue::I64(i) => Value::I64(i),
-            HashableValue::Int(i) => Value::Int(i),
-            HashableValue::F64(f) => Value::F64(f),
-            HashableValue::Bytes(b) => Value::Bytes(b),
-            HashableValue::String(s) => Value::String(s),
-            HashableValue::FrozenSet(v) => Value::FrozenSet(v),
-            HashableValue::Tuple(v) => Value::Tuple(hashable_to_values(v)),
-        }
-    }
-}
+// impl Value {
+//     /// Convert the value into a hashable version, if possible.  If not, return
+//     /// a ValueNotHashable error.
+//     pub fn into_hashable(self) -> Result<HashableValue, Error> {
+//         match self {
+//             Value::None => Ok(HashableValue::None),
+//             Value::Bool(b) => Ok(HashableValue::Bool(b)),
+//             Value::I64(i) => Ok(HashableValue::I64(i)),
+//             Value::Int(i) => Ok(HashableValue::Int(i)),
+//             Value::F64(f) => Ok(HashableValue::F64(f)),
+//             Value::Bytes(b) => Ok(HashableValue::Bytes(b)),
+//             Value::String(s) => Ok(HashableValue::String(s)),
+//             Value::FrozenSet(v) => Ok(HashableValue::FrozenSet(v)),
+//             Value::Tuple(v) => values_to_hashable(v).map(HashableValue::Tuple),
+//             _ => Err(Error::Syntax(ErrorCode::ValueNotHashable)),
+//         }
+//     }
+// }
+
+// impl HashableValue {
+//     /// Convert the value into its non-hashable version.  This always works.
+//     pub fn into_value(self) -> Value {
+//         match self {
+//             HashableValue::None => Value::None,
+//             HashableValue::Bool(b) => Value::Bool(b),
+//             HashableValue::I64(i) => Value::I64(i),
+//             HashableValue::Int(i) => Value::Int(i),
+//             HashableValue::F64(f) => Value::F64(f),
+//             HashableValue::Bytes(b) => Value::Bytes(b),
+//             HashableValue::String(s) => Value::String(s),
+//             HashableValue::FrozenSet(v) => Value::FrozenSet(v),
+//             HashableValue::Tuple(v) => Value::Tuple(hashable_to_values(v)),
+//         }
+//     }
+// }
 
 fn write_elements<'a, I, T>(
     f: &mut fmt::Formatter, it: I, prefix: &'static str, suffix: &'static str, len: usize, always_comma: bool,
