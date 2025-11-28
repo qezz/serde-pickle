@@ -11,6 +11,7 @@
 //! `value_from_*` functions exported here, not the generic `from_*` functions.
 
 use byteorder::{BigEndian, ByteOrder, LittleEndian};
+use indexmap::IndexMap;
 use iter_read::{IterRead, IterReadItem};
 use num_bigint::{BigInt, Sign};
 use num_traits::ToPrimitive;
@@ -122,10 +123,10 @@ pub struct Deserializer<R: Read> {
     rdr: BufReader<R>,
     options: DeOptions,
     pos: usize,
-    value: Option<Value>,                 // next value to deserialize
+    value: Option<Value>,                // next value to deserialize
     memo: HashMap<MemoId, (Value, i32)>, // pickle memo (value, number of refs)
-    stack: Vec<Value>,                    // topmost items on the stack
-    stacks: Vec<Vec<Value>>,              // items further down the stack, between MARKs
+    stack: Vec<Value>,                   // topmost items on the stack
+    stacks: Vec<Vec<Value>>,             // items further down the stack, between MARKs
 }
 
 impl<R: Read> Deserializer<R> {
@@ -1146,7 +1147,7 @@ impl<R: Read> Deserializer<R> {
                 Ok(value::Value::FrozenSet(new?))
             }
             Value::Dict(v) => {
-                let mut map = BTreeMap::new();
+                let mut map = IndexMap::new();
                 for (key, value) in v {
                     let real_key = self.convert_value(key).and_then(|rv| rv.into_hashable())?;
                     let real_value = self.convert_value(value)?;

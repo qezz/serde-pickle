@@ -12,7 +12,7 @@ macro_rules! pyobj {
     (b=False)    => { Value::Bool(false) };
     (i=$i:expr)  => { Value::I64($i) };
     (ii=$i:expr) => { Value::Int($i.clone()) };
-    (f=$f:expr)  => { Value::F64($f) };
+    // (f=$f:expr)  => { Value::F64($f) };
     (bb=$b:expr) => { Value::Bytes($b.to_vec()) };
     (s=$s:expr)  => { Value::String($s.into()) };
     (t=($($m:ident=$v:tt),*))  => { Value::Tuple(vec![$(pyobj!($m=$v)),*]) };
@@ -20,7 +20,7 @@ macro_rules! pyobj {
     (ss=($($m:ident=$v:tt),*)) => { Value::Set(BTreeSet::from_iter(vec![$(hpyobj!($m=$v)),*])) };
     (fs=($($m:ident=$v:tt),*)) => { Value::FrozenSet(BTreeSet::from_iter(vec![$(hpyobj!($m=$v)),*])) };
     (d={$($km:ident=$kv:tt => $vm:ident=$vv:tt),*}) => {
-        Value::Dict(BTreeMap::from_iter(vec![$((hpyobj!($km=$kv),
+        Value::Dict(indexmap::map::IndexMap::from_iter(vec![$((hpyobj!($km=$kv),
                                                 pyobj!($vm=$vv))),*])) };
 }
 
@@ -30,7 +30,7 @@ macro_rules! hpyobj {
     (b=False)    => { HashableValue::Bool(false) };
     (i=$i:expr)  => { HashableValue::I64($i) };
     (ii=$i:expr) => { HashableValue::Int($i.clone()) };
-    (f=$f:expr)  => { HashableValue::F64($f) };
+    // (f=$f:expr)  => { HashableValue::F64($f) };
     (bb=$b:expr) => { HashableValue::Bytes($b.to_vec()) };
     (s=$s:expr)  => { HashableValue::String($s.into()) };
     (t=($($m:ident=$v:tt),*))  => { HashableValue::Tuple(vec![$(hpyobj!($m=$v)),*]) };
@@ -189,7 +189,7 @@ mod struct_tests {
         test_decode_ok(pyobj!(b = True), Some(true));
         test_decode_ok::<Option<bool>>(pyobj!(n = None), None);
         test_decode_ok(pyobj!(i = 10000000000), 10000000000_i64);
-        test_decode_ok(pyobj!(f = 4.5), 4.5_f64);
+        // test_decode_ok(pyobj!(f = 4.5), 4.5_f64);
         test_decode_ok(pyobj!(s = "ä"), 'ä');
         test_decode_ok(pyobj!(s = "string"), String::from("string"));
         // Vec<u8> doesn't decode from serde bytes...

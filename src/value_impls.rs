@@ -6,6 +6,7 @@
 
 //! Serializer/Deserializer implementations for `value::Value`.
 
+use indexmap::IndexMap;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use serde::de::Visitor;
@@ -102,7 +103,7 @@ impl<'de> de::Deserialize<'de> for Value {
 
             #[inline]
             fn visit_map<V: de::MapAccess<'de>>(self, mut visitor: V) -> StdResult<Value, V::Error> {
-                let mut values = BTreeMap::new();
+                let mut values = IndexMap::new();
                 while let Some((key, value)) = visitor.next_entry()? {
                     values.insert(key, value);
                 }
@@ -146,10 +147,10 @@ impl<'de> de::Deserialize<'de> for HashableValue {
                 }
             }
 
-            #[inline]
-            fn visit_f64<E>(self, value: f64) -> StdResult<HashableValue, E> {
-                Ok(HashableValue::F64(value))
-            }
+            // #[inline]
+            // fn visit_f64<E>(self, value: f64) -> StdResult<HashableValue, E> {
+            //     Ok(HashableValue::F64(value))
+            // }
 
             #[inline]
             fn visit_str<E: de::Error>(self, value: &str) -> StdResult<HashableValue, E> {
@@ -378,7 +379,7 @@ impl<'de: 'a, 'a> de::SeqAccess<'de> for SeqDeserializer<'a> {
 
 struct MapDeserializer<'a> {
     de: &'a mut Deserializer,
-    iter: btree_map::IntoIter<HashableValue, Value>,
+    iter: indexmap::map::IntoIter<HashableValue, Value>,
     value: Option<Value>,
     len: usize,
 }
@@ -487,7 +488,7 @@ impl<'a> ser::SerializeTupleVariant for SerializeTupleVariant<'a> {
 
     #[inline]
     fn end(self) -> Result<Value> {
-        let mut d = BTreeMap::new();
+        let mut d = IndexMap::new();
         d.insert(HashableValue::String(self.variant.into()), Value::List(self.state));
         Ok(Value::Dict(d))
     }
@@ -497,7 +498,7 @@ pub struct SerializeMap<'a> {
     ser: &'a mut Serializer,
     variant: &'a str,
     key: Option<HashableValue>,
-    state: BTreeMap<HashableValue, Value>,
+    state: IndexMap<HashableValue, Value>,
 }
 
 impl<'a> ser::SerializeMap for SerializeMap<'a> {
@@ -555,7 +556,7 @@ impl<'a> ser::SerializeStructVariant for SerializeMap<'a> {
 
     #[inline]
     fn end(self) -> Result<Value> {
-        let mut d = BTreeMap::new();
+        let mut d = IndexMap::new();
         d.insert(HashableValue::String(self.variant.into()), Value::Dict(self.state));
         Ok(Value::Dict(d))
     }
@@ -677,7 +678,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     fn serialize_newtype_variant<T: Serialize + ?Sized>(
         self, _name: &'static str, _variant_index: u32, variant: &'static str, value: &T,
     ) -> Result<Value> {
-        let mut d = BTreeMap::new();
+        let mut d = IndexMap::new();
         d.insert(HashableValue::String(variant.into()), to_value(&value)?);
         Ok(Value::Dict(d))
     }
@@ -716,19 +717,19 @@ impl<'a> ser::Serializer for &'a mut Serializer {
 
     #[inline]
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        Ok(SerializeMap { ser: self, variant: "", key: None, state: BTreeMap::new() })
+        Ok(SerializeMap { ser: self, variant: "", key: None, state: IndexMap::new() })
     }
 
     #[inline]
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
-        Ok(SerializeMap { ser: self, variant: "", key: None, state: BTreeMap::new() })
+        Ok(SerializeMap { ser: self, variant: "", key: None, state: IndexMap::new() })
     }
 
     #[inline]
     fn serialize_struct_variant(
         self, _name: &'static str, _variant_index: u32, variant: &'static str, _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        Ok(SerializeMap { ser: self, variant, key: None, state: BTreeMap::new() })
+        Ok(SerializeMap { ser: self, variant, key: None, state: IndexMap::new() })
     }
 }
 

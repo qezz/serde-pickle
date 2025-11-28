@@ -6,6 +6,7 @@
 
 //! Python values, and serialization instances for them.
 
+use indexmap::IndexMap;
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use std::cmp::Ordering;
@@ -49,7 +50,7 @@ pub enum Value {
     /// Frozen (immutable) set
     FrozenSet(BTreeSet<HashableValue>),
     /// Dictionary (map)
-    Dict(BTreeMap<HashableValue, Value>),
+    Dict(IndexMap<HashableValue, Value>),
 }
 
 /// Represents all primitive builtin Python values that can be contained
@@ -59,7 +60,7 @@ pub enum Value {
 /// instead of the hash variants.  To be able to put all Value instances
 /// into these B-trees, we implement a consistent ordering between all
 /// the possible types (see below).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub enum HashableValue {
     /// None
     None,
@@ -70,7 +71,7 @@ pub enum HashableValue {
     /// Long integer
     Int(BigInt),
     /// Float
-    F64(f64),
+    // F64(f64),
     /// Bytestring
     Bytes(Vec<u8>),
     /// Unicode string
@@ -98,7 +99,7 @@ impl Value {
             Value::Bool(b) => Ok(HashableValue::Bool(b)),
             Value::I64(i) => Ok(HashableValue::I64(i)),
             Value::Int(i) => Ok(HashableValue::Int(i)),
-            Value::F64(f) => Ok(HashableValue::F64(f)),
+            // Value::F64(f) => Ok(HashableValue::F64(f)),
             Value::Bytes(b) => Ok(HashableValue::Bytes(b)),
             Value::String(s) => Ok(HashableValue::String(s)),
             Value::FrozenSet(v) => Ok(HashableValue::FrozenSet(v)),
@@ -116,7 +117,7 @@ impl HashableValue {
             HashableValue::Bool(b) => Value::Bool(b),
             HashableValue::I64(i) => Value::I64(i),
             HashableValue::Int(i) => Value::Int(i),
-            HashableValue::F64(f) => Value::F64(f),
+            // HashableValue::F64(f) => Value::F64(f),
             HashableValue::Bytes(b) => Value::Bytes(b),
             HashableValue::String(s) => Value::String(s),
             HashableValue::FrozenSet(v) => Value::FrozenSet(v),
@@ -232,7 +233,7 @@ impl Ord for HashableValue {
                 Bool(b2) => b.cmp(&b2),
                 I64(i2) => (b as i64).cmp(&i2),
                 Int(ref bi) => BigInt::from(b as i64).cmp(bi),
-                F64(f) => float_ord(b as i64 as f64, f),
+                // F64(f) => float_ord(b as i64 as f64, f),
                 _ => Ordering::Less,
             },
             I64(i) => match *other {
@@ -240,7 +241,7 @@ impl Ord for HashableValue {
                 Bool(b) => i.cmp(&(b as i64)),
                 I64(i2) => i.cmp(&i2),
                 Int(ref bi) => BigInt::from(i).cmp(bi),
-                F64(f) => float_ord(i as f64, f),
+                // F64(f) => float_ord(i as f64, f),
                 _ => Ordering::Less,
             },
             Int(ref bi) => match *other {
@@ -248,17 +249,17 @@ impl Ord for HashableValue {
                 Bool(b) => bi.cmp(&BigInt::from(b as i64)),
                 I64(i) => bi.cmp(&BigInt::from(i)),
                 Int(ref bi2) => bi.cmp(bi2),
-                F64(f) => float_bigint_ord(bi, f),
+                // F64(f) => float_bigint_ord(bi, f),
                 _ => Ordering::Less,
             },
-            F64(f) => match *other {
-                None => Ordering::Greater,
-                Bool(b) => float_ord(f, b as i64 as f64),
-                I64(i) => float_ord(f, i as f64),
-                Int(ref bi) => BigInt::from(f as i64).cmp(bi),
-                F64(f2) => float_ord(f, f2),
-                _ => Ordering::Less,
-            },
+            // F64(f) => match *other {
+            //     None => Ordering::Greater,
+            //     Bool(b) => float_ord(f, b as i64 as f64),
+            //     I64(i) => float_ord(f, i as f64),
+            //     Int(ref bi) => BigInt::from(f as i64).cmp(bi),
+            //     // F64(f2) => float_ord(f, f2),
+            //     _ => Ordering::Less,
+            // },
             Bytes(ref bs) => match *other {
                 String(_) | FrozenSet(_) | Tuple(_) => Ordering::Less,
                 Bytes(ref bs2) => bs.cmp(bs2),
