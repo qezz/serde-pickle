@@ -1,5 +1,6 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use criterion::{criterion_group, criterion_main, Criterion};
+use indexmap::IndexMap;
 use serde_pickle::*;
 use std::collections::BTreeMap;
 use std::hint::black_box;
@@ -148,7 +149,7 @@ fn pickle_list(c: &mut Criterion) {
 }
 
 fn pickle_dict(c: &mut Criterion) {
-    let mut dict = BTreeMap::new();
+    let mut dict = IndexMap::new();
     for i in 0..1000 {
         dict.insert(hpyobj!(i = i), pyobj!(l = [i = i]));
     }
