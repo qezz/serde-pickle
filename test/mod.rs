@@ -17,8 +17,8 @@ macro_rules! pyobj {
     (s=$s:expr)  => { Value::String($s.into()) };
     (t=($($m:ident=$v:tt),*))  => { Value::Tuple(vec![$(pyobj!($m=$v)),*]) };
     (l=[$($m:ident=$v:tt),*])  => { Value::List(vec![$(pyobj!($m=$v)),*]) };
-    (ss=($($m:ident=$v:tt),*)) => { Value::Set(BTreeSet::from_iter(vec![$(hpyobj!($m=$v)),*])) };
-    (fs=($($m:ident=$v:tt),*)) => { Value::FrozenSet(BTreeSet::from_iter(vec![$(hpyobj!($m=$v)),*])) };
+    (ss=($($m:ident=$v:tt),*)) => { Value::Set(Vec::from_iter(vec![$(hpyobj!($m=$v)),*])) };
+    (fs=($($m:ident=$v:tt),*)) => { Value::FrozenSet(Vec::from_iter(vec![$(hpyobj!($m=$v)),*])) };
     (d={$($km:ident=$kv:tt => $vm:ident=$vv:tt),*}) => {
         Value::Dict(BTreeMap::from_iter(vec![$((hpyobj!($km=$kv),
                                                 pyobj!($vm=$vv))),*])) };
@@ -34,7 +34,7 @@ macro_rules! hpyobj {
     (bb=$b:expr) => { HashableValue::Bytes($b.to_vec()) };
     (s=$s:expr)  => { HashableValue::String($s.into()) };
     (t=($($m:ident=$v:tt),*))  => { HashableValue::Tuple(vec![$(hpyobj!($m=$v)),*]) };
-    (fs=($($m:ident=$v:tt),*)) => { HashableValue::FrozenSet(BTreeSet::from_iter(vec![$(hpyobj!($m=$v)),*])) };
+    (fs=($($m:ident=$v:tt),*)) => { HashableValue::FrozenSet(Vec::from_iter(vec![$(hpyobj!($m=$v)),*])) };
 }
 
 mod struct_tests {
